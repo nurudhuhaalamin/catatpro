@@ -1,39 +1,57 @@
-import { coaTemplate, formatMoney } from "@catatpro/shared";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useSession } from "./lib/auth.js";
+import { OrgProvider, useOrg } from "./lib/org.js";
+import { AppLayout } from "./components/AppLayout.js";
+import { LoginPage } from "./pages/LoginPage.js";
+import { OnboardingPage } from "./pages/OnboardingPage.js";
+import { DashboardPage } from "./pages/DashboardPage.js";
+import { ContactsPage } from "./pages/ContactsPage.js";
+import { DocumentPage } from "./pages/DocumentPage.js";
+import { PaymentsPage } from "./pages/PaymentsPage.js";
+import { ReportsPage } from "./pages/ReportsPage.js";
 
-const modules = [
-  ["Akuntansi inti", "Jurnal, buku besar, neraca saldo, neraca & laba-rugi (double-entry)"],
-  ["Kas & Bank", "Uang masuk/keluar, transfer antar akun"],
-  ["Penjualan (AR)", "Faktur, penerimaan, piutang, aging"],
-  ["Pembelian (AP)", "Tagihan, pembayaran, hutang, aging"],
-  ["Inventory", "Item, gudang, pergerakan stok, valuasi & HPP"],
-  ["Pajak & Laporan", "PPN (12% DPP 11/12), e-Faktur/Coretax, laporan keuangan"],
-];
+function Loading() {
+  return <div className="flex min-h-screen items-center justify-center text-slate-400">Memuat…</div>;
+}
+
+function Shell() {
+  const { orgs, loading } = useOrg();
+  if (loading) return <Loading />;
+  if (orgs.length === 0)
+    return (
+      <Routes>
+        <Route path="*" element={<OnboardingPage />} />
+      </Routes>
+    );
+  return (
+    <Routes>
+      <Route element={<AppLayout />}>
+        <Route index element={<DashboardPage />} />
+        <Route path="contacts" element={<ContactsPage />} />
+        <Route path="sales" element={<DocumentPage kind="sales" />} />
+        <Route path="purchases" element={<DocumentPage kind="purchase" />} />
+        <Route path="payments" element={<PaymentsPage />} />
+        <Route path="reports" element={<ReportsPage />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
 
 export function App() {
-  const coaCount = coaTemplate("emkm").length;
+  const session = useSession();
+  if (session === undefined) return <Loading />;
   return (
-    <main className="mx-auto max-w-3xl px-6 py-12">
-      <h1 className="text-3xl font-bold tracking-tight text-slate-900">CatatPro</h1>
-      <p className="mt-2 text-slate-600">
-        ERP keuangan komprehensif — double-entry, online-first, multi-tenant. Mengacu standar
-        akuntansi & perpajakan Indonesia terbaru (SAK EMKM/EP, PPN 2026).
-      </p>
-      <p className="mt-1 text-sm text-slate-400">
-        Template COA EMKM: {coaCount} akun · contoh saldo {formatMoney(11_100_00)}
-      </p>
-
-      <ul className="mt-8 grid gap-3 sm:grid-cols-2">
-        {modules.map(([title, desc]) => (
-          <li key={title} className="rounded-lg border border-slate-200 p-4">
-            <div className="font-semibold text-slate-800">{title}</div>
-            <div className="mt-1 text-sm text-slate-500">{desc}</div>
-          </li>
-        ))}
-      </ul>
-
-      <p className="mt-10 text-xs text-slate-400">
-        Fondasi (Fase 0–1). Lihat docs/ROADMAP.md untuk fase berikutnya.
-      </p>
-    </main>
+    <BrowserRouter>
+      {session ? (
+        <OrgProvider>
+          <Shell />
+        </OrgProvider>
+      ) : (
+        <Routes>
+          <Route path="*" element={<LoginPage />} />
+        </Routes>
+      )}
+    </BrowserRouter>
   );
 }

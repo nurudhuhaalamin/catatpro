@@ -53,6 +53,68 @@ export const journalCreateSchema = z
     return d === c && d > 0;
   }, "Jurnal harus berimbang (Σdebit = Σkredit) dan tidak nol");
 
+/* ------------------------------ AR/AP (Fase 2) --------------------------- */
+
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal YYYY-MM-DD");
+
+export const contactCreateSchema = z.object({
+  name: z.string().trim().min(1, "Nama wajib diisi").max(120),
+  type: z.enum(["customer", "supplier", "both"]).default("both"),
+  email: z.string().trim().email().optional().nullable().or(z.literal("")),
+  phone: z.string().trim().max(40).optional().nullable(),
+  npwp: z.string().trim().max(32).optional().nullable(),
+  address: z.string().trim().max(500).optional().nullable(),
+  note: z.string().trim().max(500).optional().nullable(),
+});
+
+const docLineSchema = z.object({
+  description: z.string().trim().min(1, "Keterangan wajib").max(200),
+  qty: z.number().int().positive().default(1),
+  unitPriceCents: z.number().int().min(0),
+  accountId: z.string().uuid(), // revenue (jual) / inventory|expense (beli)
+});
+
+const docBase = {
+  contactId: z.string().uuid("Kontak wajib dipilih"),
+  date: isoDate,
+  dueDate: isoDate.optional().nullable(),
+  taxRateId: z.string().uuid().optional().nullable(),
+  memo: z.string().trim().max(500).optional().nullable(),
+  clientId: z.string().min(1).optional(),
+  lines: z.array(docLineSchema).min(1, "Minimal 1 baris"),
+};
+
+export const salesInvoiceCreateSchema = z.object(docBase);
+export const purchaseBillCreateSchema = z.object(docBase);
+
+export const paymentCreateSchema = z
+  .object({
+    contactId: z.string().uuid(),
+    direction: z.enum(["receive", "pay"]),
+    date: isoDate,
+    cashAccountId: z.string().uuid("Akun kas/bank wajib dipilih"),
+    amountCents: z.number().int().positive("Jumlah harus > 0"),
+    memo: z.string().trim().max(500).optional().nullable(),
+    clientId: z.string().min(1).optional(),
+    allocations: z
+      .array(
+        z.object({
+          targetType: z.enum(["sales_invoice", "purchase_bill"]),
+          targetId: z.string().uuid(),
+          amountCents: z.number().int().positive(),
+        }),
+      )
+      .default([]),
+  })
+  .refine(
+    (p) => p.allocations.reduce((s, a) => s + a.amountCents, 0) <= p.amountCents,
+    "Total alokasi melebihi jumlah pembayaran",
+  );
+
 export type OrgCreate = z.infer<typeof orgCreateSchema>;
 export type AccountCreate = z.infer<typeof accountCreateSchema>;
 export type JournalCreate = z.infer<typeof journalCreateSchema>;
+export type ContactCreate = z.infer<typeof contactCreateSchema>;
+export type SalesInvoiceCreate = z.infer<typeof salesInvoiceCreateSchema>;
+export type PurchaseBillCreate = z.infer<typeof purchaseBillCreateSchema>;
+export type PaymentCreate = z.infer<typeof paymentCreateSchema>;

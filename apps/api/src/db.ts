@@ -19,3 +19,5 @@ export function getDb() {
 }
 
 export type Db = ReturnType<typeof getDb>;
+// Tipe transaksi Drizzle (parameter callback db.transaction).
+export type DbTx = Parameters<Parameters<Db["transaction"]>[0]>[0];

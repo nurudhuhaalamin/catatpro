@@ -56,6 +56,10 @@ pnpm dev:web                # Web di http://localhost:5173
 
 ## Status
 
-✅ **Fase 0–1 (fondasi):** monorepo, skema akuntansi inti + RLS, template COA per standar,
-posting service double-entry + tes invarian, API (buat org & seed COA, jurnal manual, neraca saldo),
-PWA skeleton. Lihat **[docs/ROADMAP.md](docs/ROADMAP.md)** untuk fase berikutnya.
+- ✅ **Fase 0–1 (fondasi):** monorepo, skema akuntansi inti + RLS, template COA per standar,
+  posting service double-entry + tes invarian, API (buat org & seed COA, jurnal manual, neraca saldo).
+- ✅ **Fase 2 (Mitra & AR/AP):** kontak, faktur penjualan & tagihan pembelian (jurnal otomatis),
+  pembayaran beralokasi multi-dokumen, laporan (Neraca, Laba-Rugi, Buku Besar, Aging), dan **web yang
+  bisa dipakai end-to-end** (login Supabase, routing, konteks org).
+
+Lihat **[docs/ROADMAP.md](docs/ROADMAP.md)** untuk fase berikutnya (Inventory).

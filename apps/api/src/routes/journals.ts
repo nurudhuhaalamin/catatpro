@@ -1,9 +1,7 @@
 import { Hono } from "hono";
-import { and, eq, sql } from "drizzle-orm";
 import {
   journals,
   journalLines,
-  accounts,
   journalCreateSchema,
   buildManualJournal,
 } from "@catatpro/shared";
@@ -64,35 +62,6 @@ app.post("/:orgId/journals", requireAuth, requireOrg("pencatat"), async (c) => {
   });
 
   return c.json(journal, 201);
-});
-
-// Neraca saldo: agregasi journal_lines per akun (diturunkan dari buku besar).
-app.get("/:orgId/trial-balance", requireAuth, requireOrg("viewer"), async (c) => {
-  const orgId = c.req.param("orgId");
-  const rows = await c.var.db
-    .select({
-      accountId: accounts.id,
-      code: accounts.code,
-      name: accounts.name,
-      type: accounts.type,
-      debitCents: sql<number>`COALESCE(SUM(${journalLines.debitCents}), 0)`,
-      creditCents: sql<number>`COALESCE(SUM(${journalLines.creditCents}), 0)`,
-    })
-    .from(accounts)
-    .leftJoin(journalLines, eq(journalLines.accountId, accounts.id))
-    .where(and(eq(accounts.orgId, orgId)))
-    .groupBy(accounts.id, accounts.code, accounts.name, accounts.type)
-    .orderBy(accounts.code);
-
-  const data = rows.map((r) => ({
-    ...r,
-    debitCents: Number(r.debitCents),
-    creditCents: Number(r.creditCents),
-    balanceCents: Number(r.debitCents) - Number(r.creditCents),
-  }));
-  const totalDebit = data.reduce((s, r) => s + r.debitCents, 0);
-  const totalCredit = data.reduce((s, r) => s + r.creditCents, 0);
-  return c.json({ rows: data, totalDebit, totalCredit, balanced: totalDebit === totalCredit });
 });
 
 export default app;

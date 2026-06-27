@@ -15,11 +15,14 @@ Dikerjakan bertahap; tiap fase idealnya satu PR.
 - API: buat organisasi (seed COA & PPN), jurnal manual, neraca saldo.
 - PWA skeleton.
 
-## ⏭️ Fase 2 — Mitra & AR/AP
+## ✅ Fase 2 — Mitra & AR/AP
 - Kontak (customer/vendor).
-- Penjualan: faktur → penerimaan, piutang, aging (jurnal otomatis).
-- Pembelian: tagihan → pembayaran, hutang, aging.
-- Laporan: Neraca, Laba Rugi, Buku Besar (UI), aging.
+- Penjualan: faktur multi-baris → piutang, jurnal otomatis (AR/Revenue/PPN keluaran).
+- Pembelian: tagihan multi-baris → hutang, jurnal otomatis (AP/Inventory|Expense/PPN masukan).
+- Pembayaran **beralokasi multi-dokumen** (receive/pay) + jurnal pelunasan.
+- Penomoran dokumen atomik (`number_sequences`).
+- Laporan: Neraca Saldo, Neraca, Laba Rugi, Buku Besar, Aging AR/AP.
+- Web: login Supabase, routing, konteks org, halaman Kontak/Penjualan/Pembelian/Pembayaran/Laporan.
 
 ## ⏭️ Fase 3 — Inventory
 - Item, gudang, pergerakan stok, opname.

@@ -35,6 +35,10 @@ export const accountTypeEnum = pgEnum("account_type", ["asset", "liability", "eq
 export const normalBalanceEnum = pgEnum("normal_balance", ["debit", "credit"]);
 export const journalStatusEnum = pgEnum("journal_status", ["draft", "posted", "void"]);
 export const taxAppliesEnum = pgEnum("tax_applies_to", ["sales", "purchase", "both"]);
+export const contactTypeEnum = pgEnum("contact_type", ["customer", "supplier", "both"]);
+export const docStatusEnum = pgEnum("doc_status", ["draft", "posted", "partial", "paid", "void"]);
+export const paymentDirectionEnum = pgEnum("payment_direction", ["receive", "pay"]);
+export const allocationTargetEnum = pgEnum("allocation_target", ["sales_invoice", "purchase_bill"]);
 
 /* ------------------------------- tenancy --------------------------------- */
 
@@ -236,6 +240,201 @@ export const journalLines = pgTable(
   }),
 );
 
+/* ----------------------------- contacts (mitra) -------------------------- */
+
+export const contacts = pgTable(
+  "contacts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    type: contactTypeEnum("type").notNull().default("both"),
+    email: text("email"),
+    phone: text("phone"),
+    npwp: text("npwp"),
+    address: text("address"),
+    note: text("note"),
+    createdAt: now(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => ({ orgIdx: index("contacts_org_idx").on(t.orgId) }),
+);
+
+/* ------------------------------- sales (AR) ------------------------------ */
+
+export const salesInvoices = pgTable(
+  "sales_invoices",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    number: text("number"),
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id),
+    date: date("date").notNull(),
+    dueDate: date("due_date"),
+    status: docStatusEnum("status").notNull().default("posted"),
+    subtotalCents: bigint("subtotal_cents", { mode: "number" }).notNull().default(0),
+    taxCents: bigint("tax_cents", { mode: "number" }).notNull().default(0),
+    totalCents: bigint("total_cents", { mode: "number" }).notNull().default(0),
+    paidCents: bigint("paid_cents", { mode: "number" }).notNull().default(0),
+    taxRateId: uuid("tax_rate_id").references(() => taxRates.id),
+    journalId: uuid("journal_id").references(() => journals.id),
+    memo: text("memo"),
+    createdBy: uuid("created_by"),
+    clientId: text("client_id"),
+    createdAt: now(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => ({
+    orgIdx: index("sales_invoices_org_idx").on(t.orgId, t.date),
+    contactIdx: index("sales_invoices_contact_idx").on(t.orgId, t.contactId),
+    clientUniq: uniqueIndex("sales_invoices_client_uniq").on(t.orgId, t.clientId),
+  }),
+);
+
+export const salesInvoiceLines = pgTable(
+  "sales_invoice_lines",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    invoiceId: uuid("invoice_id")
+      .notNull()
+      .references(() => salesInvoices.id, { onDelete: "cascade" }),
+    lineNo: integer("line_no").notNull().default(0),
+    description: text("description").notNull(),
+    qty: integer("qty").notNull().default(1),
+    unitPriceCents: bigint("unit_price_cents", { mode: "number" }).notNull().default(0),
+    amountCents: bigint("amount_cents", { mode: "number" }).notNull().default(0),
+    revenueAccountId: uuid("revenue_account_id")
+      .notNull()
+      .references(() => accounts.id),
+  },
+  (t) => ({ invoiceIdx: index("sales_invoice_lines_invoice_idx").on(t.invoiceId) }),
+);
+
+/* ----------------------------- purchases (AP) ---------------------------- */
+
+export const purchaseBills = pgTable(
+  "purchase_bills",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    number: text("number"),
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id),
+    date: date("date").notNull(),
+    dueDate: date("due_date"),
+    status: docStatusEnum("status").notNull().default("posted"),
+    subtotalCents: bigint("subtotal_cents", { mode: "number" }).notNull().default(0),
+    taxCents: bigint("tax_cents", { mode: "number" }).notNull().default(0),
+    totalCents: bigint("total_cents", { mode: "number" }).notNull().default(0),
+    paidCents: bigint("paid_cents", { mode: "number" }).notNull().default(0),
+    taxRateId: uuid("tax_rate_id").references(() => taxRates.id),
+    journalId: uuid("journal_id").references(() => journals.id),
+    memo: text("memo"),
+    createdBy: uuid("created_by"),
+    clientId: text("client_id"),
+    createdAt: now(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => ({
+    orgIdx: index("purchase_bills_org_idx").on(t.orgId, t.date),
+    contactIdx: index("purchase_bills_contact_idx").on(t.orgId, t.contactId),
+    clientUniq: uniqueIndex("purchase_bills_client_uniq").on(t.orgId, t.clientId),
+  }),
+);
+
+export const purchaseBillLines = pgTable(
+  "purchase_bill_lines",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    billId: uuid("bill_id")
+      .notNull()
+      .references(() => purchaseBills.id, { onDelete: "cascade" }),
+    lineNo: integer("line_no").notNull().default(0),
+    description: text("description").notNull(),
+    qty: integer("qty").notNull().default(1),
+    unitPriceCents: bigint("unit_price_cents", { mode: "number" }).notNull().default(0),
+    amountCents: bigint("amount_cents", { mode: "number" }).notNull().default(0),
+    // akun debet: persediaan (inventory) atau beban (expense)
+    debitAccountId: uuid("debit_account_id")
+      .notNull()
+      .references(() => accounts.id),
+  },
+  (t) => ({ billIdx: index("purchase_bill_lines_bill_idx").on(t.billId) }),
+);
+
+/* ------------------------------- payments -------------------------------- */
+
+export const payments = pgTable(
+  "payments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    number: text("number"),
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id),
+    direction: paymentDirectionEnum("direction").notNull(),
+    date: date("date").notNull(),
+    // akun kas/bank (akun COA bersubtype cash_bank)
+    cashAccountId: uuid("cash_account_id")
+      .notNull()
+      .references(() => accounts.id),
+    amountCents: bigint("amount_cents", { mode: "number" }).notNull(),
+    journalId: uuid("journal_id").references(() => journals.id),
+    memo: text("memo"),
+    createdBy: uuid("created_by"),
+    clientId: text("client_id"),
+    createdAt: now(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => ({
+    orgIdx: index("payments_org_idx").on(t.orgId, t.date),
+    contactIdx: index("payments_contact_idx").on(t.orgId, t.contactId),
+    clientUniq: uniqueIndex("payments_client_uniq").on(t.orgId, t.clientId),
+  }),
+);
+
+export const paymentAllocations = pgTable(
+  "payment_allocations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    paymentId: uuid("payment_id")
+      .notNull()
+      .references(() => payments.id, { onDelete: "cascade" }),
+    targetType: allocationTargetEnum("target_type").notNull(),
+    targetId: uuid("target_id").notNull(),
+    amountCents: bigint("amount_cents", { mode: "number" }).notNull(),
+  },
+  (t) => ({
+    paymentIdx: index("payment_allocations_payment_idx").on(t.paymentId),
+    targetIdx: index("payment_allocations_target_idx").on(t.orgId, t.targetType, t.targetId),
+  }),
+);
+
 export const schema = {
   organizations,
   memberships,
@@ -245,6 +444,13 @@ export const schema = {
   taxRates,
   journals,
   journalLines,
+  contacts,
+  salesInvoices,
+  salesInvoiceLines,
+  purchaseBills,
+  purchaseBillLines,
+  payments,
+  paymentAllocations,
 };
 
 export { sql };

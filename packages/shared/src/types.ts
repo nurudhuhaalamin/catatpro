@@ -7,6 +7,13 @@ import type {
   taxRates,
   journals,
   journalLines,
+  contacts,
+  salesInvoices,
+  salesInvoiceLines,
+  purchaseBills,
+  purchaseBillLines,
+  payments,
+  paymentAllocations,
 } from "./schema.js";
 
 export type Organization = typeof organizations.$inferSelect;
@@ -17,6 +24,13 @@ export type NumberSequence = typeof numberSequences.$inferSelect;
 export type TaxRate = typeof taxRates.$inferSelect;
 export type Journal = typeof journals.$inferSelect;
 export type JournalLine = typeof journalLines.$inferSelect;
+export type Contact = typeof contacts.$inferSelect;
+export type SalesInvoice = typeof salesInvoices.$inferSelect;
+export type SalesInvoiceLine = typeof salesInvoiceLines.$inferSelect;
+export type PurchaseBill = typeof purchaseBills.$inferSelect;
+export type PurchaseBillLine = typeof purchaseBillLines.$inferSelect;
+export type Payment = typeof payments.$inferSelect;
+export type PaymentAllocation = typeof paymentAllocations.$inferSelect;
 
 export type AccountType = Account["type"];
 export type Role = Membership["role"];

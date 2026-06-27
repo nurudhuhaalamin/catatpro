@@ -173,6 +173,80 @@ export function buildSalesInvoiceJournal(i: SalesInvoiceInput): DraftJournal {
   });
 }
 
+export interface AmountLine {
+  accountId: string;
+  amountCents: Cents;
+}
+
+export interface SalesInvoiceLinesInput {
+  date: string;
+  contactId: string;
+  arAccountId: string;
+  revenueLines: AmountLine[]; // satu baris per akun pendapatan
+  taxCents?: Cents;
+  taxOutputAccountId?: string | null;
+  sourceId?: string | null;
+  memo?: string | null;
+}
+
+/**
+ * Faktur penjualan multi-baris (akun pendapatan bisa berbeda per baris):
+ * Dr Piutang (subtotal+PPN) / Cr tiap akun pendapatan / Cr PPN Keluaran.
+ */
+export function buildSalesInvoiceJournalFromLines(i: SalesInvoiceLinesInput): DraftJournal {
+  const subtotal = i.revenueLines.reduce((s, l) => s + l.amountCents, 0);
+  const tax = i.taxCents ?? 0;
+  const total = subtotal + tax;
+  const lines: DraftLine[] = [...debit(i.arAccountId, total, { contactId: i.contactId })];
+  for (const l of i.revenueLines) lines.push(...credit(l.accountId, l.amountCents));
+  if (tax > 0) {
+    if (!i.taxOutputAccountId) throw new Error("taxOutputAccountId wajib bila ada PPN");
+    lines.push(...credit(i.taxOutputAccountId, tax));
+  }
+  return assertBalanced({
+    date: i.date,
+    sourceType: "sales_invoice",
+    sourceId: i.sourceId ?? null,
+    memo: i.memo ?? null,
+    lines,
+  });
+}
+
+export interface PurchaseBillLinesInput {
+  date: string;
+  contactId: string;
+  apAccountId: string;
+  debitLines: AmountLine[]; // persediaan/beban per baris
+  taxCents?: Cents;
+  taxInputAccountId?: string | null;
+  sourceId?: string | null;
+  memo?: string | null;
+}
+
+/**
+ * Tagihan pembelian multi-baris:
+ * Dr tiap akun persediaan/beban + Dr PPN Masukan / Cr Utang Usaha (subtotal+PPN).
+ */
+export function buildPurchaseBillJournalFromLines(i: PurchaseBillLinesInput): DraftJournal {
+  const subtotal = i.debitLines.reduce((s, l) => s + l.amountCents, 0);
+  const tax = i.taxCents ?? 0;
+  const total = subtotal + tax;
+  const lines: DraftLine[] = [];
+  for (const l of i.debitLines) lines.push(...debit(l.accountId, l.amountCents));
+  if (tax > 0) {
+    if (!i.taxInputAccountId) throw new Error("taxInputAccountId wajib bila ada PPN");
+    lines.push(...debit(i.taxInputAccountId, tax));
+  }
+  lines.push(...credit(i.apAccountId, total, { contactId: i.contactId }));
+  return assertBalanced({
+    date: i.date,
+    sourceType: "purchase_bill",
+    sourceId: i.sourceId ?? null,
+    memo: i.memo ?? null,
+    lines,
+  });
+}
+
 export interface PurchaseBillInput {
   date: string;
   contactId: string;

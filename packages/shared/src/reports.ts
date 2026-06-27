@@ -39,3 +39,38 @@ export function isLedgerBalanced(lines: LedgerLine[]): boolean {
   }
   return d === c;
 }
+
+export interface AgingDoc {
+  dueDate?: string | null; // ISO date; null dianggap jatuh tempo pada tanggal dokumen
+  date: string;
+  outstandingCents: Cents;
+}
+
+export interface AgingBuckets {
+  current: Cents; // belum jatuh tempo
+  d1_30: Cents;
+  d31_60: Cents;
+  d61_90: Cents;
+  d90plus: Cents;
+  total: Cents;
+}
+
+const daysBetween = (a: string, b: string) =>
+  Math.floor((Date.parse(a) - Date.parse(b)) / 86_400_000);
+
+/** Kelompokkan umur (aging) piutang/hutang relatif terhadap `asOf`. */
+export function agingBuckets(docs: AgingDoc[], asOf: string): AgingBuckets {
+  const b: AgingBuckets = { current: 0, d1_30: 0, d31_60: 0, d61_90: 0, d90plus: 0, total: 0 };
+  for (const doc of docs) {
+    if (doc.outstandingCents <= 0) continue;
+    const due = doc.dueDate ?? doc.date;
+    const overdue = daysBetween(asOf, due);
+    if (overdue <= 0) b.current += doc.outstandingCents;
+    else if (overdue <= 30) b.d1_30 += doc.outstandingCents;
+    else if (overdue <= 60) b.d31_60 += doc.outstandingCents;
+    else if (overdue <= 90) b.d61_90 += doc.outstandingCents;
+    else b.d90plus += doc.outstandingCents;
+    b.total += doc.outstandingCents;
+  }
+  return b;
+}
