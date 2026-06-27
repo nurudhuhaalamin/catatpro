@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { formatMoney, type Account, type Contact, type TaxRate } from "@catatpro/shared";
+import { formatMoney, type Account, type Contact, type TaxRate, type Item } from "@catatpro/shared";
 import { useOrg } from "../lib/org.js";
 import { apiFetch } from "../lib/api.js";
 
@@ -17,6 +17,7 @@ interface Line {
   qty: number;
   unitRupiah: number;
   accountId: string;
+  itemId: string;
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -43,6 +44,11 @@ export function DocumentPage({ kind }: { kind: "sales" | "purchase" }) {
     queryFn: () => apiFetch<TaxRate[]>(`/orgs/${orgId}/tax-rates`, { orgId }),
     enabled: !!orgId,
   });
+  const { data: itemList = [] } = useQuery({
+    queryKey: ["items", orgId],
+    queryFn: () => apiFetch<Item[]>(`/orgs/${orgId}/items`, { orgId }),
+    enabled: !!orgId,
+  });
   const { data: docs = [] } = useQuery({
     queryKey: [listPath, orgId],
     queryFn: () => apiFetch<DocRow[]>(`/orgs/${orgId}/${listPath}`, { orgId }),
@@ -56,7 +62,23 @@ export function DocumentPage({ kind }: { kind: "sales" | "purchase" }) {
   const [contactId, setContactId] = useState("");
   const [date, setDate] = useState(today());
   const [taxRateId, setTaxRateId] = useState("");
-  const [lines, setLines] = useState<Line[]>([{ description: "", qty: 1, unitRupiah: 0, accountId: "" }]);
+  const emptyLine = (): Line => ({ description: "", qty: 1, unitRupiah: 0, accountId: "", itemId: "" });
+  const [lines, setLines] = useState<Line[]>([emptyLine()]);
+
+  // Pilih item → isi keterangan, harga, akun, dan itemId.
+  const pickItem = (i: number, itemId: string) => {
+    const it = itemList.find((x) => x.id === itemId);
+    if (!it) {
+      setLine(i, { itemId: "" });
+      return;
+    }
+    setLine(i, {
+      itemId,
+      description: it.name,
+      unitRupiah: isSales ? it.salePriceCents / 100 : 0,
+      accountId: (isSales ? it.revenueAccountId : it.inventoryAccountId) ?? "",
+    });
+  };
 
   const create = useMutation({
     mutationFn: () =>
@@ -72,11 +94,12 @@ export function DocumentPage({ kind }: { kind: "sales" | "purchase" }) {
             qty: l.qty,
             unitPriceCents: Math.round(l.unitRupiah * 100),
             accountId: l.accountId,
+            itemId: l.itemId || null,
           })),
         },
       }),
     onSuccess: () => {
-      setLines([{ description: "", qty: 1, unitRupiah: 0, accountId: "" }]);
+      setLines([emptyLine()]);
       setContactId("");
       qc.invalidateQueries({ queryKey: [listPath, orgId] });
     },
@@ -114,6 +137,12 @@ export function DocumentPage({ kind }: { kind: "sales" | "purchase" }) {
 
         {lines.map((l, i) => (
           <div key={i} className="flex flex-wrap gap-2">
+            <select className="rounded border border-slate-300 px-3 py-2" value={l.itemId} onChange={(e) => pickItem(i, e.target.value)}>
+              <option value="">Item (opsional)</option>
+              {itemList.map((it) => (
+                <option key={it.id} value={it.id}>{it.name}{it.type === "stock" ? ` (stok ${it.qtyOnHand})` : ""}</option>
+              ))}
+            </select>
             <input
               required
               placeholder="Keterangan"
@@ -146,7 +175,7 @@ export function DocumentPage({ kind }: { kind: "sales" | "purchase" }) {
         ))}
 
         <div className="flex items-center gap-3">
-          <button type="button" className="text-sm text-slate-600 underline" onClick={() => setLines((ls) => [...ls, { description: "", qty: 1, unitRupiah: 0, accountId: "" }])}>
+          <button type="button" className="text-sm text-slate-600 underline" onClick={() => setLines((ls) => [...ls, emptyLine()])}>
             + Tambah baris
           </button>
           <button className="rounded bg-slate-900 px-4 py-2 text-white" disabled={create.isPending}>

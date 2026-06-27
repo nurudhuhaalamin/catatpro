@@ -4,13 +4,14 @@ import { formatMoney } from "@catatpro/shared";
 import { useOrg } from "../lib/org.js";
 import { apiFetch } from "../lib/api.js";
 
-type Tab = "trial-balance" | "balance-sheet" | "income-statement" | "ar-aging" | "ap-aging";
+type Tab = "trial-balance" | "balance-sheet" | "income-statement" | "ar-aging" | "ap-aging" | "inventory";
 const TABS: [Tab, string][] = [
   ["trial-balance", "Neraca Saldo"],
   ["balance-sheet", "Neraca"],
   ["income-statement", "Laba Rugi"],
   ["ar-aging", "Aging Piutang"],
   ["ap-aging", "Aging Hutang"],
+  ["inventory", "Persediaan"],
 ];
 
 interface Row { code?: string; name?: string; debitCents?: number; creditCents?: number; amountCents?: number }
@@ -20,7 +21,11 @@ export function ReportsPage() {
   const [tab, setTab] = useState<Tab>("trial-balance");
   const { data } = useQuery({
     queryKey: ["report", tab, orgId],
-    queryFn: () => apiFetch<Record<string, unknown>>(`/orgs/${orgId}/reports/${tab}`, { orgId }),
+    queryFn: () =>
+      apiFetch<Record<string, unknown>>(
+        tab === "inventory" ? `/orgs/${orgId}/inventory/valuation` : `/orgs/${orgId}/reports/${tab}`,
+        { orgId },
+      ),
     enabled: !!orgId,
   });
 
@@ -45,6 +50,7 @@ export function ReportsPage() {
         {data && tab === "balance-sheet" && <BalanceSheet data={data} />}
         {data && tab === "income-statement" && <IncomeStatement data={data} />}
         {data && (tab === "ar-aging" || tab === "ap-aging") && <Aging data={data} />}
+        {data && tab === "inventory" && <Inventory data={data} />}
       </div>
     </div>
   );
@@ -104,6 +110,27 @@ function IncomeStatement({ data }: { data: Record<string, unknown> }) {
       <Section title="Beban" rows={data.expense as Row[]} />
       <div className="mt-2 flex justify-between font-semibold"><span>Laba (Rugi) Bersih</span><span>{formatMoney(data.netIncomeCents as number)}</span></div>
     </div>
+  );
+}
+
+interface InvRow { name: string; qtyOnHand: number; avgCostCents: number; valueCents: number }
+function Inventory({ data }: { data: Record<string, unknown> }) {
+  const rows = (data.rows as InvRow[]) ?? [];
+  return (
+    <table className="w-full">
+      <thead><tr className="text-left text-slate-500"><th>Item</th><th className="text-right">Qty</th><th className="text-right">Biaya rata-rata</th><th className="text-right">Nilai</th></tr></thead>
+      <tbody>
+        {rows.map((r, i) => (
+          <tr key={i} className="border-b">
+            <td>{r.name}</td>
+            <td className="text-right">{r.qtyOnHand}</td>
+            <td className="text-right">{formatMoney(r.avgCostCents)}</td>
+            <td className="text-right">{formatMoney(r.valueCents)}</td>
+          </tr>
+        ))}
+        <tr className="font-semibold"><td colSpan={3} className="py-2">Total</td><td className="text-right">{formatMoney((data.totalCents as number) ?? 0)}</td></tr>
+      </tbody>
+    </table>
   );
 }
 

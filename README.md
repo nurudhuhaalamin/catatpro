@@ -61,5 +61,8 @@ pnpm dev:web                # Web di http://localhost:5173
 - ✅ **Fase 2 (Mitra & AR/AP):** kontak, faktur penjualan & tagihan pembelian (jurnal otomatis),
   pembayaran beralokasi multi-dokumen, laporan (Neraca, Laba-Rugi, Buku Besar, Aging), dan **web yang
   bisa dipakai end-to-end** (login Supabase, routing, konteks org).
+- ✅ **Fase 3 (Inventory):** item/produk, gudang default, pergerakan stok, **valuasi rata-rata bergerak**
+  + **HPP otomatis** terintegrasi ke penjualan/pembelian, laporan persediaan. **Skema diterapkan &
+  diverifikasi di Supabase** (lihat **[docs/SUPABASE.md](docs/SUPABASE.md)**).
 
-Lihat **[docs/ROADMAP.md](docs/ROADMAP.md)** untuk fase berikutnya (Inventory).
+Lihat **[docs/ROADMAP.md](docs/ROADMAP.md)** untuk fase berikutnya (Pajak & tutup buku).

@@ -6,6 +6,7 @@ import { LoginPage } from "./pages/LoginPage.js";
 import { OnboardingPage } from "./pages/OnboardingPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
 import { ContactsPage } from "./pages/ContactsPage.js";
+import { ItemsPage } from "./pages/ItemsPage.js";
 import { DocumentPage } from "./pages/DocumentPage.js";
 import { PaymentsPage } from "./pages/PaymentsPage.js";
 import { ReportsPage } from "./pages/ReportsPage.js";
@@ -28,6 +29,7 @@ function Shell() {
       <Route element={<AppLayout />}>
         <Route index element={<DashboardPage />} />
         <Route path="contacts" element={<ContactsPage />} />
+        <Route path="items" element={<ItemsPage />} />
         <Route path="sales" element={<DocumentPage kind="sales" />} />
         <Route path="purchases" element={<DocumentPage kind="purchase" />} />
         <Route path="payments" element={<PaymentsPage />} />

@@ -14,6 +14,9 @@ import type {
   purchaseBillLines,
   payments,
   paymentAllocations,
+  warehouses,
+  items,
+  stockMoves,
 } from "./schema.js";
 
 export type Organization = typeof organizations.$inferSelect;
@@ -31,6 +34,9 @@ export type PurchaseBill = typeof purchaseBills.$inferSelect;
 export type PurchaseBillLine = typeof purchaseBillLines.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
 export type PaymentAllocation = typeof paymentAllocations.$inferSelect;
+export type Warehouse = typeof warehouses.$inferSelect;
+export type Item = typeof items.$inferSelect;
+export type StockMove = typeof stockMoves.$inferSelect;
 
 export type AccountType = Account["type"];
 export type Role = Membership["role"];

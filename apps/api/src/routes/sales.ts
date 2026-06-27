@@ -1,16 +1,20 @@
 import { Hono } from "hono";
-import { and, eq, isNull, desc } from "drizzle-orm";
+import { and, eq, isNull, inArray, desc } from "drizzle-orm";
 import {
   salesInvoices,
   salesInvoiceLines,
+  items,
   buildSalesInvoiceJournalFromLines,
   salesInvoiceCreateSchema,
+  type CogsLine,
+  type Item,
 } from "@catatpro/shared";
 import type { AppContext } from "../env.js";
 import { requireAuth, requireOrg } from "../middleware.js";
 import { loadResolver, resolveTax } from "../lib/accounting.js";
 import { nextDocumentNumber } from "../lib/sequences.js";
 import { insertDraftJournal } from "../lib/journal.js";
+import { defaultWarehouseId, recordStockOut } from "../lib/stock.js";
 
 const app = new Hono<AppContext>();
 
@@ -74,6 +78,23 @@ app.post("/:orgId/sales-invoices", requireAuth, requireOrg("pencatat"), async (c
         })),
       );
 
+      // Pergerakan stok keluar + HPP (perpetual) untuk baris item stok.
+      const itemIds = [...new Set(lines.map((l) => l.itemId).filter((x): x is string => !!x))];
+      const cogsLines: CogsLine[] = [];
+      if (itemIds.length) {
+        const rows = await tx.select().from(items).where(and(eq(items.orgId, orgId), inArray(items.id, itemIds)));
+        const itemMap = new Map<string, Item>(rows.map((it) => [it.id, it]));
+        const whId = await defaultWarehouseId(tx, orgId);
+        for (const l of lines) {
+          const it = l.itemId ? itemMap.get(l.itemId) : undefined;
+          if (!it || it.type !== "stock") continue;
+          if (!it.inventoryAccountId || !it.cogsAccountId) throw new Error(`Item ${it.name} tanpa akun persediaan/HPP`);
+          const [cur] = await tx.select().from(items).where(eq(items.id, it.id));
+          const { cogsCents } = await recordStockOut(tx, cur, whId, l.qty, d.date, "sales_invoice", inv.id, l.description);
+          if (cogsCents > 0) cogsLines.push({ cogsAccountId: it.cogsAccountId, inventoryAccountId: it.inventoryAccountId, amountCents: cogsCents });
+        }
+      }
+
       const draft = buildSalesInvoiceJournalFromLines({
         date: d.date,
         contactId: d.contactId,
@@ -81,6 +102,7 @@ app.post("/:orgId/sales-invoices", requireAuth, requireOrg("pencatat"), async (c
         revenueLines: lines.map((l) => ({ accountId: l.accountId, amountCents: l.amountCents })),
         taxCents,
         taxOutputAccountId: taxCents > 0 ? resolve("tax_output") : null,
+        cogsLines,
         sourceId: inv.id,
         memo: number,
       });

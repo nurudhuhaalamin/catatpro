@@ -15,6 +15,13 @@
       "when": 1782544274838,
       "tag": "0001_daffy_the_professor",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782545891341,
+      "tag": "0002_cuddly_mariko_yashida",
+      "breakpoints": true
     }
   ]
 }

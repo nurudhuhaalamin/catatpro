@@ -11,6 +11,8 @@ import purchases from "./routes/purchases.js";
 import payments from "./routes/payments.js";
 import reports from "./routes/reports.js";
 import catalog from "./routes/catalog.js";
+import itemsRoute from "./routes/items.js";
+import inventory from "./routes/inventory.js";
 
 const app = new Hono<AppContext>().basePath("/api");
 
@@ -37,6 +39,8 @@ app.route("/orgs", purchases);
 app.route("/orgs", payments);
 app.route("/orgs", reports);
 app.route("/orgs", catalog);
+app.route("/orgs", itemsRoute);
+app.route("/orgs", inventory);
 
 const port = Number(process.env.PORT ?? 8787);
 serve({ fetch: app.fetch, port });

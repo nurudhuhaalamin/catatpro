@@ -39,6 +39,8 @@ export const contactTypeEnum = pgEnum("contact_type", ["customer", "supplier", "
 export const docStatusEnum = pgEnum("doc_status", ["draft", "posted", "partial", "paid", "void"]);
 export const paymentDirectionEnum = pgEnum("payment_direction", ["receive", "pay"]);
 export const allocationTargetEnum = pgEnum("allocation_target", ["sales_invoice", "purchase_bill"]);
+export const itemTypeEnum = pgEnum("item_type", ["stock", "service"]);
+export const stockSourceEnum = pgEnum("stock_source", ["purchase_bill", "sales_invoice", "adjustment", "opening"]);
 
 /* ------------------------------- tenancy --------------------------------- */
 
@@ -435,6 +437,80 @@ export const paymentAllocations = pgTable(
   }),
 );
 
+/* ------------------------------- inventory ------------------------------- */
+
+export const warehouses = pgTable(
+  "warehouses",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    isDefault: boolean("is_default").notNull().default(false),
+    isArchived: boolean("is_archived").notNull().default(false),
+    createdAt: now(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({ orgIdx: index("warehouses_org_idx").on(t.orgId) }),
+);
+
+export const items = pgTable(
+  "items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    sku: text("sku"),
+    name: text("name").notNull(),
+    type: itemTypeEnum("type").notNull().default("stock"),
+    unit: text("unit").notNull().default("pcs"),
+    salePriceCents: bigint("sale_price_cents", { mode: "number" }).notNull().default(0),
+    costMethod: text("cost_method").notNull().default("average"),
+    // cache stok & biaya rata-rata (sumber kebenaran tetap stock_moves & ledger)
+    qtyOnHand: integer("qty_on_hand").notNull().default(0),
+    avgCostCents: bigint("avg_cost_cents", { mode: "number" }).notNull().default(0),
+    inventoryAccountId: uuid("inventory_account_id").references(() => accounts.id),
+    cogsAccountId: uuid("cogs_account_id").references(() => accounts.id),
+    revenueAccountId: uuid("revenue_account_id").references(() => accounts.id),
+    isArchived: boolean("is_archived").notNull().default(false),
+    createdAt: now(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => ({ orgIdx: index("items_org_idx").on(t.orgId) }),
+);
+
+export const stockMoves = pgTable(
+  "stock_moves",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    itemId: uuid("item_id")
+      .notNull()
+      .references(() => items.id),
+    warehouseId: uuid("warehouse_id")
+      .notNull()
+      .references(() => warehouses.id),
+    date: date("date").notNull(),
+    // qtyDelta & valueCents bertanda: + masuk, − keluar
+    qtyDelta: integer("qty_delta").notNull(),
+    unitCostCents: bigint("unit_cost_cents", { mode: "number" }).notNull().default(0),
+    valueCents: bigint("value_cents", { mode: "number" }).notNull().default(0),
+    sourceType: stockSourceEnum("source_type").notNull(),
+    sourceId: uuid("source_id"),
+    memo: text("memo"),
+    createdAt: now(),
+  },
+  (t) => ({
+    orgItemIdx: index("stock_moves_org_item_idx").on(t.orgId, t.itemId, t.date),
+    sourceIdx: index("stock_moves_source_idx").on(t.orgId, t.sourceType, t.sourceId),
+  }),
+);
+
 export const schema = {
   organizations,
   memberships,
@@ -451,6 +527,9 @@ export const schema = {
   purchaseBillLines,
   payments,
   paymentAllocations,
+  warehouses,
+  items,
+  stockMoves,
 };
 
 export { sql };

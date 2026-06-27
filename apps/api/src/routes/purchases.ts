@@ -1,16 +1,19 @@
 import { Hono } from "hono";
-import { and, eq, isNull, desc } from "drizzle-orm";
+import { and, eq, isNull, inArray, desc } from "drizzle-orm";
 import {
   purchaseBills,
   purchaseBillLines,
+  items,
   buildPurchaseBillJournalFromLines,
   purchaseBillCreateSchema,
+  type Item,
 } from "@catatpro/shared";
 import type { AppContext } from "../env.js";
 import { requireAuth, requireOrg } from "../middleware.js";
 import { loadResolver, resolveTax } from "../lib/accounting.js";
 import { nextDocumentNumber } from "../lib/sequences.js";
 import { insertDraftJournal } from "../lib/journal.js";
+import { defaultWarehouseId, recordStockIn } from "../lib/stock.js";
 
 const app = new Hono<AppContext>();
 
@@ -41,6 +44,20 @@ app.post("/:orgId/purchase-bills", requireAuth, requireOrg("pencatat"), async (c
       const totalCents = subtotalCents + taxCents;
       const number = await nextDocumentNumber(tx, orgId, "purchase_bill", d.date);
 
+      // Muat item yang dirujuk baris (untuk akun persediaan & pergerakan stok).
+      const itemIds = [...new Set(lines.map((l) => l.itemId).filter((x): x is string => !!x))];
+      const itemMap = new Map<string, Item>();
+      if (itemIds.length) {
+        const rows = await tx.select().from(items).where(and(eq(items.orgId, orgId), inArray(items.id, itemIds)));
+        for (const it of rows) itemMap.set(it.id, it);
+      }
+      // Untuk baris item stok: gunakan akun persediaan item sebagai akun debet.
+      const effLines = lines.map((l) => {
+        const it = l.itemId ? itemMap.get(l.itemId) : undefined;
+        const accountId = it && it.type === "stock" && it.inventoryAccountId ? it.inventoryAccountId : l.accountId;
+        return { ...l, accountId };
+      });
+
       const [b] = await tx
         .insert(purchaseBills)
         .values({
@@ -62,7 +79,7 @@ app.post("/:orgId/purchase-bills", requireAuth, requireOrg("pencatat"), async (c
         .returning();
 
       await tx.insert(purchaseBillLines).values(
-        lines.map((l) => ({
+        effLines.map((l) => ({
           orgId,
           billId: b.id,
           lineNo: l.lineNo,
@@ -74,11 +91,26 @@ app.post("/:orgId/purchase-bills", requireAuth, requireOrg("pencatat"), async (c
         })),
       );
 
+      // Pergerakan stok masuk + perbarui biaya rata-rata untuk baris item stok.
+      const stockLines = effLines.filter((l) => {
+        const it = l.itemId ? itemMap.get(l.itemId) : undefined;
+        return it && it.type === "stock";
+      });
+      if (stockLines.length) {
+        const whId = await defaultWarehouseId(tx, orgId);
+        for (const l of stockLines) {
+          const it = itemMap.get(l.itemId!)!;
+          // refresh agar rata-rata berurutan benar bila item sama muncul >1 baris
+          const [cur] = await tx.select().from(items).where(eq(items.id, it.id));
+          await recordStockIn(tx, cur, whId, l.qty, l.unitPriceCents, d.date, "purchase_bill", b.id, l.description);
+        }
+      }
+
       const draft = buildPurchaseBillJournalFromLines({
         date: d.date,
         contactId: d.contactId,
         apAccountId: resolve("accounts_payable"),
-        debitLines: lines.map((l) => ({ accountId: l.accountId, amountCents: l.amountCents })),
+        debitLines: effLines.map((l) => ({ accountId: l.accountId, amountCents: l.amountCents })),
         taxCents,
         taxInputAccountId: taxCents > 0 ? resolve("tax_input") : null,
         sourceId: b.id,

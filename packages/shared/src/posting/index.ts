@@ -178,6 +178,13 @@ export interface AmountLine {
   amountCents: Cents;
 }
 
+// Baris HPP (perpetual): Dr HPP / Cr Persediaan saat barang stok terjual.
+export interface CogsLine {
+  cogsAccountId: string;
+  inventoryAccountId: string;
+  amountCents: Cents;
+}
+
 export interface SalesInvoiceLinesInput {
   date: string;
   contactId: string;
@@ -185,6 +192,7 @@ export interface SalesInvoiceLinesInput {
   revenueLines: AmountLine[]; // satu baris per akun pendapatan
   taxCents?: Cents;
   taxOutputAccountId?: string | null;
+  cogsLines?: CogsLine[]; // HPP otomatis untuk item stok (opsional)
   sourceId?: string | null;
   memo?: string | null;
 }
@@ -192,6 +200,7 @@ export interface SalesInvoiceLinesInput {
 /**
  * Faktur penjualan multi-baris (akun pendapatan bisa berbeda per baris):
  * Dr Piutang (subtotal+PPN) / Cr tiap akun pendapatan / Cr PPN Keluaran.
+ * Bila ada item stok: Dr HPP / Cr Persediaan per baris HPP (perpetual).
  */
 export function buildSalesInvoiceJournalFromLines(i: SalesInvoiceLinesInput): DraftJournal {
   const subtotal = i.revenueLines.reduce((s, l) => s + l.amountCents, 0);
@@ -202,6 +211,9 @@ export function buildSalesInvoiceJournalFromLines(i: SalesInvoiceLinesInput): Dr
   if (tax > 0) {
     if (!i.taxOutputAccountId) throw new Error("taxOutputAccountId wajib bila ada PPN");
     lines.push(...credit(i.taxOutputAccountId, tax));
+  }
+  for (const cg of i.cogsLines ?? []) {
+    lines.push(...debit(cg.cogsAccountId, cg.amountCents), ...credit(cg.inventoryAccountId, cg.amountCents));
   }
   return assertBalanced({
     date: i.date,

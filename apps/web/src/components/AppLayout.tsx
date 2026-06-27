@@ -5,6 +5,7 @@ import { useOrg } from "../lib/org.js";
 const nav = [
   ["/", "Dashboard"],
   ["/contacts", "Kontak"],
+  ["/items", "Item"],
   ["/sales", "Penjualan"],
   ["/purchases", "Pembelian"],
   ["/payments", "Pembayaran"],

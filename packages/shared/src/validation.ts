@@ -72,6 +72,7 @@ const docLineSchema = z.object({
   qty: z.number().int().positive().default(1),
   unitPriceCents: z.number().int().min(0),
   accountId: z.string().uuid(), // revenue (jual) / inventory|expense (beli)
+  itemId: z.string().uuid().optional().nullable(), // bila baris merujuk item stok
 });
 
 const docBase = {
@@ -111,9 +112,33 @@ export const paymentCreateSchema = z
     "Total alokasi melebihi jumlah pembayaran",
   );
 
+/* ----------------------------- inventory (Fase 3) ------------------------ */
+
+export const itemCreateSchema = z.object({
+  sku: z.string().trim().max(40).optional().nullable(),
+  name: z.string().trim().min(1, "Nama item wajib").max(120),
+  type: z.enum(["stock", "service"]).default("stock"),
+  unit: z.string().trim().min(1).max(20).default("pcs"),
+  salePriceCents: z.number().int().min(0).default(0),
+});
+
+export const stockAdjustmentSchema = z.object({
+  itemId: z.string().uuid(),
+  date: isoDate,
+  // qtyDelta + opening cost (untuk penambahan), atau qtyDelta negatif (pengurangan)
+  qtyDelta: z.number().int().refine((v) => v !== 0, "Perubahan qty tidak boleh 0"),
+  unitCostCents: z.number().int().min(0).default(0),
+  // akun lawan: default ekuitas (stok awal) atau beban (penyusutan stok)
+  offsetAccountId: z.string().uuid(),
+  memo: z.string().trim().max(500).optional().nullable(),
+  clientId: z.string().min(1).optional(),
+});
+
 export type OrgCreate = z.infer<typeof orgCreateSchema>;
 export type AccountCreate = z.infer<typeof accountCreateSchema>;
 export type JournalCreate = z.infer<typeof journalCreateSchema>;
+export type ItemCreate = z.infer<typeof itemCreateSchema>;
+export type StockAdjustment = z.infer<typeof stockAdjustmentSchema>;
 export type ContactCreate = z.infer<typeof contactCreateSchema>;
 export type SalesInvoiceCreate = z.infer<typeof salesInvoiceCreateSchema>;
 export type PurchaseBillCreate = z.infer<typeof purchaseBillCreateSchema>;

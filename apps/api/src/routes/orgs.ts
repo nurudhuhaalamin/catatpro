@@ -5,6 +5,7 @@ import {
   memberships,
   accounts,
   taxRates,
+  warehouses,
   coaTemplate,
   orgCreateSchema,
   type OrgWithRole,
@@ -40,6 +41,9 @@ app.post("/", requireAuth, async (c) => {
       .returning();
 
     await tx.insert(memberships).values({ orgId: created.id, userId, role: "owner" });
+
+    // Gudang default untuk modul persediaan.
+    await tx.insert(warehouses).values({ orgId: created.id, name: "Gudang Utama", isDefault: true });
 
     const coaRows = coaTemplate(accountingStandard).map((a) => ({
       orgId: created.id,

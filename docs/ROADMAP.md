@@ -24,9 +24,11 @@ Dikerjakan bertahap; tiap fase idealnya satu PR.
 - Laporan: Neraca Saldo, Neraca, Laba Rugi, Buku Besar, Aging AR/AP.
 - Web: login Supabase, routing, konteks org, halaman Kontak/Penjualan/Pembelian/Pembayaran/Laporan.
 
-## ⏭️ Fase 3 — Inventory
-- Item, gudang, pergerakan stok, opname.
-- Valuasi (average/FIFO) + integrasi HPP ke penjualan/pembelian.
+## ✅ Fase 3 — Inventory
+- Item (stok/jasa), gudang default, pergerakan stok, penyesuaian/stok awal.
+- Valuasi **rata-rata bergerak** + integrasi **HPP otomatis** ke penjualan & biaya rata-rata ke pembelian.
+- Laporan persediaan (valuasi) + kartu stok.
+- Diterapkan & diverifikasi di Supabase (lihat docs/SUPABASE.md).
 
 ## ⏭️ Fase 4 — Pajak & tutup buku
 - PPN masukan/keluaran (tarif via `tax_rates`), field & ekspor e-Faktur/Coretax.
