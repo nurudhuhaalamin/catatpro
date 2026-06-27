@@ -287,6 +287,10 @@ export const salesInvoices = pgTable(
     totalCents: bigint("total_cents", { mode: "number" }).notNull().default(0),
     paidCents: bigint("paid_cents", { mode: "number" }).notNull().default(0),
     taxRateId: uuid("tax_rate_id").references(() => taxRates.id),
+    // Multi-currency: mata uang dokumen & kurs (base per 1 unit asing, skala 1e6).
+    // Nilai *_cents pada dokumen = mata uang DOKUMEN; buku besar selalu mata uang dasar.
+    currency: text("currency").notNull().default("IDR"),
+    rateMicros: bigint("rate_micros", { mode: "number" }).notNull().default(1_000_000),
     // e-Faktur/Coretax: kode transaksi (mis. '01','04') & NPWP/NIK lawan (snapshot).
     taxCode: text("tax_code"),
     counterpartyNpwp: text("counterparty_npwp"),
@@ -348,6 +352,8 @@ export const purchaseBills = pgTable(
     totalCents: bigint("total_cents", { mode: "number" }).notNull().default(0),
     paidCents: bigint("paid_cents", { mode: "number" }).notNull().default(0),
     taxRateId: uuid("tax_rate_id").references(() => taxRates.id),
+    currency: text("currency").notNull().default("IDR"),
+    rateMicros: bigint("rate_micros", { mode: "number" }).notNull().default(1_000_000),
     taxCode: text("tax_code"),
     counterpartyNpwp: text("counterparty_npwp"),
     journalId: uuid("journal_id").references(() => journals.id),
@@ -408,6 +414,8 @@ export const payments = pgTable(
       .notNull()
       .references(() => accounts.id),
     amountCents: bigint("amount_cents", { mode: "number" }).notNull(),
+    currency: text("currency").notNull().default("IDR"),
+    rateMicros: bigint("rate_micros", { mode: "number" }).notNull().default(1_000_000),
     journalId: uuid("journal_id").references(() => journals.id),
     memo: text("memo"),
     createdBy: uuid("created_by"),
@@ -563,6 +571,23 @@ export const depreciationEntries = pgTable(
   (t) => ({ assetIdx: index("depreciation_entries_asset_idx").on(t.orgId, t.assetId) }),
 );
 
+/* ------------------------------ exchange rates --------------------------- */
+
+export const exchangeRates = pgTable(
+  "exchange_rates",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    currency: text("currency").notNull(), // mis. 'USD'
+    rateMicros: bigint("rate_micros", { mode: "number" }).notNull(), // base per 1 unit asing × 1e6
+    validFrom: date("valid_from").notNull(),
+    createdAt: now(),
+  },
+  (t) => ({ orgIdx: index("exchange_rates_org_idx").on(t.orgId, t.currency, t.validFrom) }),
+);
+
 export const schema = {
   organizations,
   memberships,
@@ -570,6 +595,7 @@ export const schema = {
   accounts,
   numberSequences,
   taxRates,
+  exchangeRates,
   journals,
   journalLines,
   contacts,

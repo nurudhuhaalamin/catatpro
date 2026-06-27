@@ -12,6 +12,7 @@ import { PaymentsPage } from "./pages/PaymentsPage.js";
 import { ReportsPage } from "./pages/ReportsPage.js";
 import { PeriodsPage } from "./pages/PeriodsPage.js";
 import { AssetsPage } from "./pages/AssetsPage.js";
+import { ExchangeRatesPage } from "./pages/ExchangeRatesPage.js";
 
 function Loading() {
   return <div className="flex min-h-screen items-center justify-center text-slate-400">Memuat…</div>;
@@ -37,6 +38,7 @@ function Shell() {
         <Route path="payments" element={<PaymentsPage />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route path="assets" element={<AssetsPage />} />
+        <Route path="rates" element={<ExchangeRatesPage />} />
         <Route path="periods" element={<PeriodsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

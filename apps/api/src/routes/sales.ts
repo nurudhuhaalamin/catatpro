@@ -7,12 +7,14 @@ import {
   items,
   buildSalesInvoiceJournalFromLines,
   salesInvoiceCreateSchema,
+  convertToBase,
   type CogsLine,
   type Item,
 } from "@catatpro/shared";
 import type { AppContext } from "../env.js";
 import { requireAuth, requireOrg } from "../middleware.js";
 import { loadResolver, resolveTax } from "../lib/accounting.js";
+import { resolveRate } from "../lib/forex.js";
 import { nextDocumentNumber } from "../lib/sequences.js";
 import { insertDraftJournal } from "../lib/journal.js";
 import { defaultWarehouseId, recordStockOut } from "../lib/stock.js";
@@ -44,6 +46,7 @@ app.post("/:orgId/sales-invoices", requireAuth, requireOrg("pencatat"), async (c
     const invoice = await c.var.db.transaction(async (tx) => {
       await assertPeriodOpen(tx, orgId, d.date);
       const resolve = await loadResolver(tx, orgId);
+      const { currency, rateMicros } = await resolveRate(tx, orgId, d.currency, d.date, d.rateMicros);
       const { taxRateId, taxCents } = await resolveTax(tx, orgId, d.taxRateId, subtotalCents, d.date);
       const totalCents = subtotalCents + taxCents;
       const number = await nextDocumentNumber(tx, orgId, "sales_invoice", d.date);
@@ -63,6 +66,8 @@ app.post("/:orgId/sales-invoices", requireAuth, requireOrg("pencatat"), async (c
           totalCents,
           paidCents: 0,
           taxRateId,
+          currency,
+          rateMicros,
           taxCode: d.taxCode ?? null,
           counterpartyNpwp: d.counterpartyNpwp ?? contact?.npwp ?? null,
           memo: d.memo ?? null,
@@ -105,8 +110,9 @@ app.post("/:orgId/sales-invoices", requireAuth, requireOrg("pencatat"), async (c
         date: d.date,
         contactId: d.contactId,
         arAccountId: resolve("accounts_receivable"),
-        revenueLines: lines.map((l) => ({ accountId: l.accountId, amountCents: l.amountCents })),
-        taxCents,
+        // jurnal selalu mata uang dasar → konversi nilai dokumen via kurs
+        revenueLines: lines.map((l) => ({ accountId: l.accountId, amountCents: convertToBase(l.amountCents, rateMicros) })),
+        taxCents: convertToBase(taxCents, rateMicros),
         taxOutputAccountId: taxCents > 0 ? resolve("tax_output") : null,
         cogsLines,
         sourceId: inv.id,

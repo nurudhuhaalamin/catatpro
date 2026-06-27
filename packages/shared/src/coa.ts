@@ -33,6 +33,8 @@ export type AccountSubtype =
   | "retained_earnings"
   | "revenue"
   | "other_income"
+  | "fx_gain"
+  | "fx_loss"
   | "cogs"
   | "expense"
   | "depreciation_expense"
@@ -56,6 +58,8 @@ const EMKM: CoaTemplateAccount[] = [
   // Pendapatan
   { code: "4-40001", name: "Pendapatan Penjualan", type: "income", subtype: "revenue", normalBalance: "credit", isDefault: true },
   { code: "4-40002", name: "Pendapatan Lain-lain", type: "income", subtype: "other_income", normalBalance: "credit", isDefault: true },
+  { code: "7-70001", name: "Laba Selisih Kurs", type: "income", subtype: "fx_gain", normalBalance: "credit", isDefault: true },
+  { code: "8-80002", name: "Rugi Selisih Kurs", type: "expense", subtype: "fx_loss", normalBalance: "debit", isDefault: true },
   // HPP
   { code: "5-50001", name: "Harga Pokok Penjualan", type: "expense", subtype: "cogs", normalBalance: "debit", isDefault: true },
   // Beban operasional

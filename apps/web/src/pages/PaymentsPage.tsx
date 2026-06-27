@@ -10,6 +10,7 @@ interface DocRow {
   totalCents: number;
   paidCents: number;
   status: string;
+  currency: string;
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -21,6 +22,8 @@ export function PaymentsPage() {
   const [contactId, setContactId] = useState("");
   const [cashAccountId, setCashAccountId] = useState("");
   const [date, setDate] = useState(today());
+  const [currency, setCurrency] = useState("IDR");
+  const [rate, setRate] = useState(1);
   const [alloc, setAlloc] = useState<Record<string, number>>({});
 
   const { data: contacts = [] } = useQuery({
@@ -42,7 +45,8 @@ export function PaymentsPage() {
   });
 
   const cashAccounts = accounts.filter((a) => a.subtype === "cash_bank" && !a.isArchived);
-  const outstanding = docs.filter((d) => d.status !== "paid");
+  // hanya dokumen dengan mata uang sama yang bisa dialokasikan
+  const outstanding = docs.filter((d) => d.status !== "paid" && d.currency === currency);
   const totalAlloc = Object.values(alloc).reduce((s, v) => s + (v || 0), 0);
 
   const create = useMutation({
@@ -55,6 +59,8 @@ export function PaymentsPage() {
           direction,
           date,
           cashAccountId,
+          currency,
+          rateMicros: Math.round(rate * 1_000_000),
           amountCents: Math.round(totalAlloc * 100),
           allocations: Object.entries(alloc)
             .filter(([, v]) => v > 0)
@@ -97,6 +103,25 @@ export function PaymentsPage() {
               <option key={a.id} value={a.id}>{a.name}</option>
             ))}
           </select>
+          <input
+            className="w-20 rounded border border-slate-300 px-3 py-2 uppercase"
+            value={currency}
+            maxLength={3}
+            onChange={(e) => { setCurrency(e.target.value.toUpperCase()); setAlloc({}); }}
+            title="Mata uang"
+          />
+          {currency !== "IDR" && (
+            <input
+              type="number"
+              min={0}
+              step="0.0001"
+              className="w-32 rounded border border-slate-300 px-3 py-2"
+              value={rate}
+              onChange={(e) => setRate(Number(e.target.value))}
+              title="Kurs ke IDR"
+              placeholder="Kurs bayar"
+            />
+          )}
         </div>
 
         <div className="space-y-1">

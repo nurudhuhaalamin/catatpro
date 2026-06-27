@@ -19,6 +19,7 @@ import type {
   stockMoves,
   fixedAssets,
   depreciationEntries,
+  exchangeRates,
 } from "./schema.js";
 
 export type Organization = typeof organizations.$inferSelect;
@@ -41,6 +42,7 @@ export type Item = typeof items.$inferSelect;
 export type StockMove = typeof stockMoves.$inferSelect;
 export type FixedAsset = typeof fixedAssets.$inferSelect;
 export type DepreciationEntry = typeof depreciationEntries.$inferSelect;
+export type ExchangeRate = typeof exchangeRates.$inferSelect;
 
 export type AccountType = Account["type"];
 export type Role = Membership["role"];

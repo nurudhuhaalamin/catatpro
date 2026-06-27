@@ -41,6 +41,8 @@ Dikerjakan bertahap; tiap fase idealnya satu PR.
 ## Fase 5 — Lanjutan (bertahap)
 - ✅ **Aset tetap & penyusutan** (garis lurus): daftar aset, jalankan penyusutan →
   jurnal Dr Beban Penyusutan / Cr Akumulasi Penyusutan; nilai buku & laporan. Diverifikasi di Supabase.
-- ⏭️ Multi-currency (butuh sumber kurs), faktur berulang + pengingat jatuh tempo (butuh kanal
-  notifikasi/`pg_cron`), rekonsiliasi bank (butuh format impor), anggaran, dashboard lanjutan.
+- ✅ **Multi-currency** (penuh + selisih kurs): tabel kurs, dokumen simpan mata uang & kurs,
+  buku besar tetap mata uang dasar, **laba/rugi selisih kurs** otomatis saat pelunasan. Diverifikasi di Supabase.
+- ⏭️ Faktur berulang + pengingat jatuh tempo (butuh kanal notifikasi/`pg_cron`), rekonsiliasi bank
+  (butuh format impor), anggaran, dashboard lanjutan.
 - ❌ Importer dari `catat` — **dibatalkan** (CatatPro produk 100% baru).

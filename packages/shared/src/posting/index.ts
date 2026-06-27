@@ -317,6 +317,46 @@ export function buildSettlementJournal(i: SettlementInput): DraftJournal {
   });
 }
 
+export interface FxSettlementInput {
+  date: string;
+  kind: "receive" | "pay";
+  cashAccountId: string;
+  contactAccountId: string; // AR (receive) / AP (pay)
+  contactId: string;
+  cashBaseCents: Cents; // nilai kas (mata uang dasar) pada kurs pembayaran
+  counterBaseCents: Cents; // nilai AR/AP dilepas (mata uang dasar) pada kurs dokumen
+  fxGainCents: Cents; // + = laba selisih kurs, − = rugi
+  fxGainAccountId: string;
+  fxLossAccountId: string;
+  sourceId?: string | null;
+  memo?: string | null;
+}
+
+/**
+ * Pelunasan mata uang asing dengan selisih kurs:
+ * - receive: Dr Kas(kurs bayar) / Cr Piutang(kurs dokumen) / Cr Laba Selisih Kurs (atau Dr Rugi)
+ * - pay:     Dr Utang(kurs dokumen) / Cr Kas(kurs bayar) / Cr Laba (atau Dr Rugi)
+ */
+export function buildFxSettlementJournal(i: FxSettlementInput): DraftJournal {
+  const lines: DraftLine[] = [];
+  if (i.kind === "receive") {
+    lines.push(...debit(i.cashAccountId, i.cashBaseCents));
+    lines.push(...credit(i.contactAccountId, i.counterBaseCents, { contactId: i.contactId }));
+  } else {
+    lines.push(...debit(i.contactAccountId, i.counterBaseCents, { contactId: i.contactId }));
+    lines.push(...credit(i.cashAccountId, i.cashBaseCents));
+  }
+  if (i.fxGainCents > 0) lines.push(...credit(i.fxGainAccountId, i.fxGainCents));
+  else if (i.fxGainCents < 0) lines.push(...debit(i.fxLossAccountId, -i.fxGainCents));
+  return assertBalanced({
+    date: i.date,
+    sourceType: i.kind === "receive" ? "receipt" : "payment",
+    sourceId: i.sourceId ?? null,
+    memo: i.memo ?? null,
+    lines,
+  });
+}
+
 /** Jurnal manual (mode pro): pakai baris apa adanya, tetap divalidasi balance. */
 export function buildManualJournal(date: string, lines: DraftLine[], memo?: string | null): DraftJournal {
   return assertBalanced({ date, sourceType: "manual", memo: memo ?? null, lines });

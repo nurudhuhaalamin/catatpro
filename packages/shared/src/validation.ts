@@ -80,6 +80,9 @@ const docBase = {
   date: isoDate,
   dueDate: isoDate.optional().nullable(),
   taxRateId: z.string().uuid().optional().nullable(),
+  // Multi-currency (opsional; default IDR / kurs 1e6)
+  currency: z.string().trim().length(3).optional(),
+  rateMicros: z.number().int().positive().optional(),
   // e-Faktur/Coretax (opsional)
   taxCode: z.string().trim().max(10).optional().nullable(),
   counterpartyNpwp: z.string().trim().max(32).optional().nullable(),
@@ -98,6 +101,8 @@ export const paymentCreateSchema = z
     date: isoDate,
     cashAccountId: z.string().uuid("Akun kas/bank wajib dipilih"),
     amountCents: z.number().int().positive("Jumlah harus > 0"),
+    currency: z.string().trim().length(3).optional(),
+    rateMicros: z.number().int().positive().optional(),
     memo: z.string().trim().max(500).optional().nullable(),
     clientId: z.string().min(1).optional(),
     allocations: z
@@ -156,7 +161,14 @@ export type OrgCreate = z.infer<typeof orgCreateSchema>;
 export type AccountCreate = z.infer<typeof accountCreateSchema>;
 export type JournalCreate = z.infer<typeof journalCreateSchema>;
 export type ItemCreate = z.infer<typeof itemCreateSchema>;
+export const exchangeRateCreateSchema = z.object({
+  currency: z.string().trim().length(3),
+  rateMicros: z.number().int().positive(),
+  validFrom: isoDate,
+});
+
 export type AssetCreate = z.infer<typeof assetCreateSchema>;
+export type ExchangeRateCreate = z.infer<typeof exchangeRateCreateSchema>;
 export type StockAdjustment = z.infer<typeof stockAdjustmentSchema>;
 export type ContactCreate = z.infer<typeof contactCreateSchema>;
 export type SalesInvoiceCreate = z.infer<typeof salesInvoiceCreateSchema>;

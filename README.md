@@ -68,5 +68,7 @@ pnpm dev:web                # Web di http://localhost:5173
   field & **ekspor e-Faktur CSV**, **Laporan Arus Kas**, **ekspor CSV** + tampilan cetak.
 - ✅ **Fase 5a (Aset tetap):** daftar aset + **penyusutan garis lurus** (jurnal otomatis Dr Beban /
   Cr Akumulasi), nilai buku. Diverifikasi di Supabase.
+- ✅ **Fase 5b (Multi-currency):** dokumen mata uang asing + kurs; buku besar tetap mata uang dasar;
+  **laba/rugi selisih kurs** otomatis saat pelunasan; tabel kurs. Diverifikasi di Supabase.
 
-Lihat **[docs/ROADMAP.md](docs/ROADMAP.md)** untuk lanjutan Fase 5 (multi-currency, faktur berulang, rekonsiliasi bank).
+Lihat **[docs/ROADMAP.md](docs/ROADMAP.md)** untuk lanjutan Fase 5 (faktur berulang, rekonsiliasi bank).

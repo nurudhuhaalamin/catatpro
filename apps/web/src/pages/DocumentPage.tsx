@@ -62,6 +62,8 @@ export function DocumentPage({ kind }: { kind: "sales" | "purchase" }) {
   const [contactId, setContactId] = useState("");
   const [date, setDate] = useState(today());
   const [taxRateId, setTaxRateId] = useState("");
+  const [currency, setCurrency] = useState("IDR");
+  const [rate, setRate] = useState(1); // base per 1 unit asing
   const emptyLine = (): Line => ({ description: "", qty: 1, unitRupiah: 0, accountId: "", itemId: "" });
   const [lines, setLines] = useState<Line[]>([emptyLine()]);
 
@@ -89,6 +91,8 @@ export function DocumentPage({ kind }: { kind: "sales" | "purchase" }) {
           contactId,
           date,
           taxRateId: taxRateId || null,
+          currency,
+          rateMicros: Math.round(rate * 1_000_000),
           lines: lines.map((l) => ({
             description: l.description,
             qty: l.qty,
@@ -133,6 +137,25 @@ export function DocumentPage({ kind }: { kind: "sales" | "purchase" }) {
               <option key={t.id} value={t.id}>{t.name}</option>
             ))}
           </select>
+          <input
+            className="w-20 rounded border border-slate-300 px-3 py-2 uppercase"
+            value={currency}
+            maxLength={3}
+            onChange={(e) => setCurrency(e.target.value.toUpperCase())}
+            title="Mata uang (mis. IDR, USD)"
+          />
+          {currency !== "IDR" && (
+            <input
+              type="number"
+              min={0}
+              step="0.0001"
+              className="w-32 rounded border border-slate-300 px-3 py-2"
+              value={rate}
+              onChange={(e) => setRate(Number(e.target.value))}
+              title="Kurs ke IDR"
+              placeholder="Kurs"
+            />
+          )}
         </div>
 
         {lines.map((l, i) => (

@@ -7,11 +7,13 @@ import {
   items,
   buildPurchaseBillJournalFromLines,
   purchaseBillCreateSchema,
+  convertToBase,
   type Item,
 } from "@catatpro/shared";
 import type { AppContext } from "../env.js";
 import { requireAuth, requireOrg } from "../middleware.js";
 import { loadResolver, resolveTax } from "../lib/accounting.js";
+import { resolveRate } from "../lib/forex.js";
 import { nextDocumentNumber } from "../lib/sequences.js";
 import { insertDraftJournal } from "../lib/journal.js";
 import { defaultWarehouseId, recordStockIn } from "../lib/stock.js";
@@ -43,6 +45,7 @@ app.post("/:orgId/purchase-bills", requireAuth, requireOrg("pencatat"), async (c
     const bill = await c.var.db.transaction(async (tx) => {
       await assertPeriodOpen(tx, orgId, d.date);
       const resolve = await loadResolver(tx, orgId);
+      const { currency, rateMicros } = await resolveRate(tx, orgId, d.currency, d.date, d.rateMicros);
       const { taxRateId, taxCents } = await resolveTax(tx, orgId, d.taxRateId, subtotalCents, d.date);
       const totalCents = subtotalCents + taxCents;
       const number = await nextDocumentNumber(tx, orgId, "purchase_bill", d.date);
@@ -76,6 +79,8 @@ app.post("/:orgId/purchase-bills", requireAuth, requireOrg("pencatat"), async (c
           totalCents,
           paidCents: 0,
           taxRateId,
+          currency,
+          rateMicros,
           taxCode: d.taxCode ?? null,
           counterpartyNpwp: d.counterpartyNpwp ?? contact?.npwp ?? null,
           memo: d.memo ?? null,
@@ -108,7 +113,8 @@ app.post("/:orgId/purchase-bills", requireAuth, requireOrg("pencatat"), async (c
           const it = itemMap.get(l.itemId!)!;
           // refresh agar rata-rata berurutan benar bila item sama muncul >1 baris
           const [cur] = await tx.select().from(items).where(eq(items.id, it.id));
-          await recordStockIn(tx, cur, whId, l.qty, l.unitPriceCents, d.date, "purchase_bill", b.id, l.description);
+          // biaya persediaan dicatat dalam mata uang dasar
+          await recordStockIn(tx, cur, whId, l.qty, convertToBase(l.unitPriceCents, rateMicros), d.date, "purchase_bill", b.id, l.description);
         }
       }
 
@@ -116,8 +122,8 @@ app.post("/:orgId/purchase-bills", requireAuth, requireOrg("pencatat"), async (c
         date: d.date,
         contactId: d.contactId,
         apAccountId: resolve("accounts_payable"),
-        debitLines: effLines.map((l) => ({ accountId: l.accountId, amountCents: l.amountCents })),
-        taxCents,
+        debitLines: effLines.map((l) => ({ accountId: l.accountId, amountCents: convertToBase(l.amountCents, rateMicros) })),
+        taxCents: convertToBase(taxCents, rateMicros),
         taxInputAccountId: taxCents > 0 ? resolve("tax_input") : null,
         sourceId: b.id,
         memo: number,

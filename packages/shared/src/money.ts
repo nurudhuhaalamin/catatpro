@@ -2,6 +2,16 @@
 
 export type Cents = number;
 
+export const RATE_SCALE = 1_000_000; // kurs disimpan sebagai integer × 1e6
+
+/**
+ * Konversi nilai mata uang dokumen (asing) ke mata uang dasar.
+ * baseCents = round(foreignCents × rateMicros / 1e6). Untuk mata uang dasar, rateMicros = 1e6.
+ */
+export function convertToBase(foreignCents: Cents, rateMicros: number): Cents {
+  return Math.round((foreignCents * rateMicros) / RATE_SCALE);
+}
+
 // Format sen -> tampilan mata uang (mengikuti pola catat, default IDR id-ID).
 export function formatMoney(cents: Cents, currency = "IDR"): string {
   const value = cents / 100;

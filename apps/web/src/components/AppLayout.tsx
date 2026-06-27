@@ -11,6 +11,7 @@ const nav = [
   ["/payments", "Pembayaran"],
   ["/assets", "Aset"],
   ["/reports", "Laporan"],
+  ["/rates", "Kurs"],
   ["/periods", "Periode"],
 ];
 
