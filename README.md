@@ -54,6 +54,16 @@ pnpm dev:api                # API di http://localhost:8787
 pnpm dev:web                # Web di http://localhost:5173
 ```
 
+## Deploy (online)
+
+Satu **Cloudflare Worker** melayani SPA + API (`/api/*`); DB tetap Supabase. Lihat
+**[docs/DEPLOY.md](docs/DEPLOY.md)**.
+
+```bash
+pnpm cf:deploy   # build web + wrangler deploy (perlu login Cloudflare + Hyperdrive/secret)
+```
+Push ke `main` juga memicu deploy otomatis via `.github/workflows/deploy.yml`.
+
 ## Status
 
 - ✅ **Fase 0–1 (fondasi):** monorepo, skema akuntansi inti + RLS, template COA per standar,

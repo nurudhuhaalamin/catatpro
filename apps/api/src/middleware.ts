@@ -5,9 +5,17 @@ import type { AppContext } from "./env.js";
 import { getDb } from "./db.js";
 import { verifyToken } from "./auth.js";
 
+// Sumber konfigurasi: binding Workers (c.env) dengan fallback process.env (Node dev).
+const dbUrl = (c: { env: AppContext["Bindings"] }) =>
+  c.env?.HYPERDRIVE?.connectionString ?? c.env?.DATABASE_URL ?? process.env.DATABASE_URL;
+const jwtSecret = (c: { env: AppContext["Bindings"] }) =>
+  c.env?.SUPABASE_JWT_SECRET ?? process.env.SUPABASE_JWT_SECRET;
+
 // Pasang db ke context tiap request.
 export const withDb = createMiddleware<AppContext>(async (c, next) => {
-  c.set("db", getDb());
+  const conn = dbUrl(c);
+  if (!conn) return c.json({ error: "Koneksi database belum dikonfigurasi" }, 500);
+  c.set("db", getDb(conn));
   await next();
 });
 
@@ -16,8 +24,10 @@ export const requireAuth = createMiddleware<AppContext>(async (c, next) => {
   const header = c.req.header("Authorization") ?? "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
   if (!token) return c.json({ error: "Tidak terautentikasi" }, 401);
+  const secret = jwtSecret(c);
+  if (!secret) return c.json({ error: "Auth belum dikonfigurasi" }, 500);
   try {
-    c.set("user", await verifyToken(token));
+    c.set("user", await verifyToken(token, secret));
   } catch {
     return c.json({ error: "Token tidak valid" }, 401);
   }

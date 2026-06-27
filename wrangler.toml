@@ -1,0 +1,29 @@
+name = "catatpro"
+main = "apps/api/src/worker.ts"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+# SPA + API dilayani satu Worker. Aset di-build dari apps/web (Vite → dist).
+[assets]
+directory = "apps/web/dist"
+binding = "ASSETS"
+# Fallback ke index.html untuk rute SPA (mis. /sales, /reports).
+not_found_handling = "single-page-application"
+
+[vars]
+WEB_ORIGIN = "https://catatpro.workers.dev"
+
+# --- Database Supabase ---
+# Pilih SALAH SATU (lihat docs/DEPLOY.md):
+# (A) REKOMENDASI — Cloudflare Hyperdrive (pooling + sembunyikan connstr).
+#     Buat config Hyperdrive ke connection string POOLER Supabase (port 6543),
+#     lalu isi id-nya & hapus komentar blok berikut:
+# [[hyperdrive]]
+# binding = "HYPERDRIVE"
+# id = "GANTI_DENGAN_HYPERDRIVE_ID"
+#
+# (B) Alternatif cepat — set DATABASE_URL sebagai SECRET (bukan [vars]):
+#     wrangler secret put DATABASE_URL
+#
+# Selain itu, WAJIB set secret:
+#     wrangler secret put SUPABASE_JWT_SECRET
