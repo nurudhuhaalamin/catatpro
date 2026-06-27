@@ -10,8 +10,7 @@ export interface AuthUser {
   email?: string;
 }
 
-export async function verifyToken(token: string): Promise<AuthUser> {
-  const secret = process.env.SUPABASE_JWT_SECRET;
+export async function verifyToken(token: string, secret: string): Promise<AuthUser> {
   if (!secret) throw new Error("SUPABASE_JWT_SECRET belum di-set");
   const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
   if (!payload.sub) throw new Error("Token tanpa subject");
