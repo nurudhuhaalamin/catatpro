@@ -137,10 +137,26 @@ export const stockAdjustmentSchema = z.object({
   clientId: z.string().min(1).optional(),
 });
 
+/* --------------------------- fixed assets (Fase 5a) ---------------------- */
+
+export const assetCreateSchema = z.object({
+  name: z.string().trim().min(1, "Nama aset wajib").max(120),
+  acquisitionDate: isoDate,
+  costCents: z.number().int().positive("Biaya perolehan harus > 0"),
+  salvageValueCents: z.number().int().min(0).default(0),
+  usefulLifeMonths: z.number().int().positive("Masa manfaat (bulan) harus > 0"),
+});
+
+export const depreciateSchema = z.object({
+  date: isoDate,
+  months: z.number().int().positive().default(1),
+});
+
 export type OrgCreate = z.infer<typeof orgCreateSchema>;
 export type AccountCreate = z.infer<typeof accountCreateSchema>;
 export type JournalCreate = z.infer<typeof journalCreateSchema>;
 export type ItemCreate = z.infer<typeof itemCreateSchema>;
+export type AssetCreate = z.infer<typeof assetCreateSchema>;
 export type StockAdjustment = z.infer<typeof stockAdjustmentSchema>;
 export type ContactCreate = z.infer<typeof contactCreateSchema>;
 export type SalesInvoiceCreate = z.infer<typeof salesInvoiceCreateSchema>;

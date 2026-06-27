@@ -17,6 +17,8 @@ import type {
   warehouses,
   items,
   stockMoves,
+  fixedAssets,
+  depreciationEntries,
 } from "./schema.js";
 
 export type Organization = typeof organizations.$inferSelect;
@@ -37,6 +39,8 @@ export type PaymentAllocation = typeof paymentAllocations.$inferSelect;
 export type Warehouse = typeof warehouses.$inferSelect;
 export type Item = typeof items.$inferSelect;
 export type StockMove = typeof stockMoves.$inferSelect;
+export type FixedAsset = typeof fixedAssets.$inferSelect;
+export type DepreciationEntry = typeof depreciationEntries.$inferSelect;
 
 export type AccountType = Account["type"];
 export type Role = Membership["role"];

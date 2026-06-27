@@ -38,6 +38,9 @@ Dikerjakan bertahap; tiap fase idealnya satu PR.
 - **Ekspor CSV** semua laporan + **tampilan cetak** (print-to-PDF). Halaman kelola Periode.
 - Diverifikasi di Supabase (PPN & arus kas).
 
-## ⏭️ Fase 5 — Lanjutan
-- Multi-currency, faktur berulang & pengingat jatuh tempo, rekonsiliasi bank,
-  aset tetap & penyusutan, anggaran, dashboard, (opsional) importer data dari `catat`.
+## Fase 5 — Lanjutan (bertahap)
+- ✅ **Aset tetap & penyusutan** (garis lurus): daftar aset, jalankan penyusutan →
+  jurnal Dr Beban Penyusutan / Cr Akumulasi Penyusutan; nilai buku & laporan. Diverifikasi di Supabase.
+- ⏭️ Multi-currency (butuh sumber kurs), faktur berulang + pengingat jatuh tempo (butuh kanal
+  notifikasi/`pg_cron`), rekonsiliasi bank (butuh format impor), anggaran, dashboard lanjutan.
+- ❌ Importer dari `catat` — **dibatalkan** (CatatPro produk 100% baru).

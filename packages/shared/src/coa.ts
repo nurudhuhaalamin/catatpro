@@ -35,6 +35,7 @@ export type AccountSubtype =
   | "other_income"
   | "cogs"
   | "expense"
+  | "depreciation_expense"
   | "other_expense";
 
 // COA inti SAK EMKM (paling ringkas).
@@ -70,7 +71,7 @@ const EP_EXTRA: CoaTemplateAccount[] = [
   { code: "1-10500", name: "Peralatan", type: "asset", subtype: "fixed_asset", normalBalance: "debit", isDefault: true },
   { code: "1-10600", name: "Akumulasi Penyusutan Peralatan", type: "asset", subtype: "accumulated_depreciation", normalBalance: "credit", isDefault: true },
   { code: "2-20200", name: "Utang Bank", type: "liability", subtype: "loan", normalBalance: "credit", isDefault: true },
-  { code: "6-60005", name: "Beban Penyusutan", type: "expense", subtype: "expense", normalBalance: "debit" },
+  { code: "6-60005", name: "Beban Penyusutan", type: "expense", subtype: "depreciation_expense", normalBalance: "debit", isDefault: true },
   { code: "8-80001", name: "Beban Bunga", type: "expense", subtype: "other_expense", normalBalance: "debit", isDefault: true },
 ];
 

@@ -66,5 +66,7 @@ pnpm dev:web                # Web di http://localhost:5173
   diverifikasi di Supabase** (lihat **[docs/SUPABASE.md](docs/SUPABASE.md)**).
 - ✅ **Fase 4 (Pajak & tutup buku):** tutup/kunci **periode** (guard posting), **laporan PPN** +
   field & **ekspor e-Faktur CSV**, **Laporan Arus Kas**, **ekspor CSV** + tampilan cetak.
+- ✅ **Fase 5a (Aset tetap):** daftar aset + **penyusutan garis lurus** (jurnal otomatis Dr Beban /
+  Cr Akumulasi), nilai buku. Diverifikasi di Supabase.
 
-Lihat **[docs/ROADMAP.md](docs/ROADMAP.md)** untuk fase berikutnya (Fase 5: multi-currency, recurring, rekonsiliasi bank, aset tetap).
+Lihat **[docs/ROADMAP.md](docs/ROADMAP.md)** untuk lanjutan Fase 5 (multi-currency, faktur berulang, rekonsiliasi bank).

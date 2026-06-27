@@ -6,5 +6,6 @@ export * from "./reports.js";
 export * from "./sequence.js";
 export * from "./inventory.js";
 export * from "./cashflow.js";
+export * from "./depreciation.js";
 export * from "./validation.js";
 export * from "./posting/index.js";

@@ -29,6 +29,13 @@
       "when": 1782549060428,
       "tag": "0003_lethal_vin_gonzales",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1782560060198,
+      "tag": "0004_milky_vance_astro",
+      "breakpoints": true
     }
   ]
 }

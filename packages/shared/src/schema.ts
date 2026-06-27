@@ -41,6 +41,7 @@ export const paymentDirectionEnum = pgEnum("payment_direction", ["receive", "pay
 export const allocationTargetEnum = pgEnum("allocation_target", ["sales_invoice", "purchase_bill"]);
 export const itemTypeEnum = pgEnum("item_type", ["stock", "service"]);
 export const stockSourceEnum = pgEnum("stock_source", ["purchase_bill", "sales_invoice", "adjustment", "opening"]);
+export const assetStatusEnum = pgEnum("asset_status", ["active", "disposed"]);
 
 /* ------------------------------- tenancy --------------------------------- */
 
@@ -516,6 +517,52 @@ export const stockMoves = pgTable(
   }),
 );
 
+/* ------------------------------ fixed assets ----------------------------- */
+
+export const fixedAssets = pgTable(
+  "fixed_assets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    acquisitionDate: date("acquisition_date").notNull(),
+    costCents: bigint("cost_cents", { mode: "number" }).notNull(),
+    salvageValueCents: bigint("salvage_value_cents", { mode: "number" }).notNull().default(0),
+    usefulLifeMonths: integer("useful_life_months").notNull(),
+    method: text("method").notNull().default("straight_line"),
+    // cache akumulasi penyusutan (sumber kebenaran tetap depreciation_entries + ledger)
+    accumulatedCents: bigint("accumulated_cents", { mode: "number" }).notNull().default(0),
+    assetAccountId: uuid("asset_account_id").references(() => accounts.id),
+    accumAccountId: uuid("accum_account_id").references(() => accounts.id),
+    expenseAccountId: uuid("expense_account_id").references(() => accounts.id),
+    status: assetStatusEnum("status").notNull().default("active"),
+    createdAt: now(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => ({ orgIdx: index("fixed_assets_org_idx").on(t.orgId) }),
+);
+
+export const depreciationEntries = pgTable(
+  "depreciation_entries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    assetId: uuid("asset_id")
+      .notNull()
+      .references(() => fixedAssets.id, { onDelete: "cascade" }),
+    date: date("date").notNull(),
+    amountCents: bigint("amount_cents", { mode: "number" }).notNull(),
+    journalId: uuid("journal_id").references(() => journals.id),
+    createdAt: now(),
+  },
+  (t) => ({ assetIdx: index("depreciation_entries_asset_idx").on(t.orgId, t.assetId) }),
+);
+
 export const schema = {
   organizations,
   memberships,
@@ -535,6 +582,8 @@ export const schema = {
   warehouses,
   items,
   stockMoves,
+  fixedAssets,
+  depreciationEntries,
 };
 
 export { sql };
