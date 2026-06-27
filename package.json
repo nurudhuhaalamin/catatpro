@@ -1,0 +1,27 @@
+{
+  "name": "catatpro",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ERP keuangan komprehensif (double-entry, online-first, multi-tenant) di atas Supabase Postgres",
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "dev:web": "pnpm --filter @catatpro/web dev",
+    "dev:api": "pnpm --filter @catatpro/api dev",
+    "build": "pnpm --filter @catatpro/web build && pnpm --filter @catatpro/api build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm --filter @catatpro/shared test",
+    "lint": "pnpm -r lint",
+    "db:generate": "pnpm --filter @catatpro/shared db:generate"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  }
+}
