@@ -9,6 +9,7 @@ export interface AppBindings {
   HYPERDRIVE?: { connectionString: string };
   DATABASE_URL?: string;
   SUPABASE_JWT_SECRET?: string;
+  SUPABASE_URL?: string;
   WEB_ORIGIN?: string;
 }
 

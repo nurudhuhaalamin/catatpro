@@ -12,6 +12,8 @@ not_found_handling = "single-page-application"
 
 [vars]
 WEB_ORIGIN = "https://catatpro.workers.dev"
+# URL Supabase (publik) — dipakai verifikasi JWT asimetris (JWKS).
+SUPABASE_URL = "https://zigdheousrbhxoivksgm.supabase.co"
 
 # --- Database Supabase ---
 # Pilih SALAH SATU (lihat docs/DEPLOY.md):
