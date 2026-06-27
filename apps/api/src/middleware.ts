@@ -10,6 +10,8 @@ const dbUrl = (c: { env: AppContext["Bindings"] }) =>
   c.env?.HYPERDRIVE?.connectionString ?? c.env?.DATABASE_URL ?? process.env.DATABASE_URL;
 const jwtSecret = (c: { env: AppContext["Bindings"] }) =>
   c.env?.SUPABASE_JWT_SECRET ?? process.env.SUPABASE_JWT_SECRET;
+const supabaseUrl = (c: { env: AppContext["Bindings"] }) =>
+  c.env?.SUPABASE_URL ?? process.env.SUPABASE_URL;
 
 // Pasang db ke context tiap request.
 export const withDb = createMiddleware<AppContext>(async (c, next) => {
@@ -25,9 +27,10 @@ export const requireAuth = createMiddleware<AppContext>(async (c, next) => {
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
   if (!token) return c.json({ error: "Tidak terautentikasi" }, 401);
   const secret = jwtSecret(c);
-  if (!secret) return c.json({ error: "Auth belum dikonfigurasi" }, 500);
+  const url = supabaseUrl(c);
+  if (!secret && !url) return c.json({ error: "Auth belum dikonfigurasi" }, 500);
   try {
-    c.set("user", await verifyToken(token, secret));
+    c.set("user", await verifyToken(token, { secret, supabaseUrl: url }));
   } catch {
     return c.json({ error: "Token tidak valid" }, 401);
   }
