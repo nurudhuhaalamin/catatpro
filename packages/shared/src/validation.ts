@@ -80,6 +80,9 @@ const docBase = {
   date: isoDate,
   dueDate: isoDate.optional().nullable(),
   taxRateId: z.string().uuid().optional().nullable(),
+  // e-Faktur/Coretax (opsional)
+  taxCode: z.string().trim().max(10).optional().nullable(),
+  counterpartyNpwp: z.string().trim().max(32).optional().nullable(),
   memo: z.string().trim().max(500).optional().nullable(),
   clientId: z.string().min(1).optional(),
   lines: z.array(docLineSchema).min(1, "Minimal 1 baris"),

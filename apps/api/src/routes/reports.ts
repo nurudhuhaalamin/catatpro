@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { and, eq, isNull, ne, sql, asc } from "drizzle-orm";
+import { and, eq, isNull, ne, lt, gte, lte, sql, asc, inArray } from "drizzle-orm";
 import {
   accounts,
   journals,
@@ -7,6 +7,7 @@ import {
   salesInvoices,
   purchaseBills,
   agingBuckets,
+  classifyCashFlow,
   type AgingDoc,
 } from "@catatpro/shared";
 import type { AppContext } from "../env.js";
@@ -130,6 +131,105 @@ app.get("/:orgId/reports/ar-aging", requireAuth, requireOrg("viewer"), async (c)
 app.get("/:orgId/reports/ap-aging", requireAuth, requireOrg("viewer"), async (c) => {
   const asOf = c.req.query("asOf") ?? new Date().toISOString().slice(0, 10);
   return c.json(await aging(c.var.db, c.req.param("orgId"), "ap", asOf));
+});
+
+const rangeOf = (c: { req: { query: (k: string) => string | undefined } }) => ({
+  from: c.req.query("from") ?? "1900-01-01",
+  to: c.req.query("to") ?? "9999-12-31",
+});
+
+// Ringkasan PPN: keluaran (penjualan) − masukan (pembelian) = PPN terutang.
+app.get("/:orgId/reports/tax-summary", requireAuth, requireOrg("viewer"), async (c) => {
+  const orgId = c.req.param("orgId");
+  const { from, to } = rangeOf(c);
+  const outRows = await c.var.db
+    .select({ number: salesInvoices.number, date: salesInvoices.date, npwp: salesInvoices.counterpartyNpwp, dpp: salesInvoices.subtotalCents, ppn: salesInvoices.taxCents })
+    .from(salesInvoices)
+    .where(and(eq(salesInvoices.orgId, orgId), isNull(salesInvoices.deletedAt), gte(salesInvoices.date, from), lte(salesInvoices.date, to)));
+  const inRows = await c.var.db
+    .select({ number: purchaseBills.number, date: purchaseBills.date, npwp: purchaseBills.counterpartyNpwp, dpp: purchaseBills.subtotalCents, ppn: purchaseBills.taxCents })
+    .from(purchaseBills)
+    .where(and(eq(purchaseBills.orgId, orgId), isNull(purchaseBills.deletedAt), gte(purchaseBills.date, from), lte(purchaseBills.date, to)));
+  const outputCents = outRows.reduce((s, r) => s + Number(r.ppn), 0);
+  const inputCents = inRows.reduce((s, r) => s + Number(r.ppn), 0);
+  return c.json({
+    range: { from, to },
+    outputCents,
+    inputCents,
+    payableCents: outputCents - inputCents,
+    outputDocs: outRows,
+    inputDocs: inRows,
+  });
+});
+
+// Arus Kas (metode langsung): klasifikasi pergerakan akun kas/bank.
+app.get("/:orgId/reports/cash-flow", requireAuth, requireOrg("viewer"), async (c) => {
+  const orgId = c.req.param("orgId");
+  const { from, to } = rangeOf(c);
+  const db = c.var.db;
+
+  const cashAccts = await db
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(and(eq(accounts.orgId, orgId), eq(accounts.subtype, "cash_bank"), isNull(accounts.deletedAt)));
+  const cashIds = new Set(cashAccts.map((a) => a.id));
+  if (cashIds.size === 0) {
+    return c.json({ range: { from, to }, beginningCents: 0, operatingCents: 0, investingCents: 0, financingCents: 0, netChangeCents: 0, endingCents: 0 });
+  }
+  const cashIdList = [...cashIds];
+
+  // Kas awal: saldo akun kas sebelum `from`.
+  const [begin] = await db
+    .select({ v: sql<number>`COALESCE(SUM(${journalLines.debitCents} - ${journalLines.creditCents}), 0)` })
+    .from(journalLines)
+    .innerJoin(journals, eq(journalLines.journalId, journals.id))
+    .where(and(eq(journalLines.orgId, orgId), inArray(journalLines.accountId, cashIdList), lt(journals.date, from)));
+  const beginningCents = Number(begin?.v ?? 0);
+
+  // Baris dalam rentang + meta akun, untuk klasifikasi.
+  const rows = await db
+    .select({
+      journalId: journals.id,
+      accountId: journalLines.accountId,
+      type: accounts.type,
+      subtype: accounts.subtype,
+      debit: journalLines.debitCents,
+      credit: journalLines.creditCents,
+    })
+    .from(journalLines)
+    .innerJoin(journals, eq(journalLines.journalId, journals.id))
+    .innerJoin(accounts, eq(journalLines.accountId, accounts.id))
+    .where(and(eq(journalLines.orgId, orgId), gte(journals.date, from), lte(journals.date, to)));
+
+  // Hanya jurnal yang menyentuh kas; sumbang arus = (kredit−debit) akun LAWAN per kategori.
+  const byJournal = new Map<string, typeof rows>();
+  for (const r of rows) {
+    const arr = byJournal.get(r.journalId) ?? [];
+    arr.push(r);
+    byJournal.set(r.journalId, arr);
+  }
+  let operating = 0, investing = 0, financing = 0;
+  for (const lines of byJournal.values()) {
+    if (!lines.some((l) => cashIds.has(l.accountId))) continue;
+    for (const l of lines) {
+      if (cashIds.has(l.accountId)) continue;
+      const contribution = Number(l.credit) - Number(l.debit); // dampak ke kas
+      const cat = classifyCashFlow(l.type, l.subtype);
+      if (cat === "operating") operating += contribution;
+      else if (cat === "investing") investing += contribution;
+      else financing += contribution;
+    }
+  }
+  const netChangeCents = operating + investing + financing;
+  return c.json({
+    range: { from, to },
+    beginningCents,
+    operatingCents: operating,
+    investingCents: investing,
+    financingCents: financing,
+    netChangeCents,
+    endingCents: beginningCents + netChangeCents,
+  });
 });
 
 export default app;

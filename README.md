@@ -64,5 +64,7 @@ pnpm dev:web                # Web di http://localhost:5173
 - ✅ **Fase 3 (Inventory):** item/produk, gudang default, pergerakan stok, **valuasi rata-rata bergerak**
   + **HPP otomatis** terintegrasi ke penjualan/pembelian, laporan persediaan. **Skema diterapkan &
   diverifikasi di Supabase** (lihat **[docs/SUPABASE.md](docs/SUPABASE.md)**).
+- ✅ **Fase 4 (Pajak & tutup buku):** tutup/kunci **periode** (guard posting), **laporan PPN** +
+  field & **ekspor e-Faktur CSV**, **Laporan Arus Kas**, **ekspor CSV** + tampilan cetak.
 
-Lihat **[docs/ROADMAP.md](docs/ROADMAP.md)** untuk fase berikutnya (Pajak & tutup buku).
+Lihat **[docs/ROADMAP.md](docs/ROADMAP.md)** untuk fase berikutnya (Fase 5: multi-currency, recurring, rekonsiliasi bank, aset tetap).

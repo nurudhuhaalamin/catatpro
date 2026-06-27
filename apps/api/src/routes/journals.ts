@@ -7,6 +7,7 @@ import {
 } from "@catatpro/shared";
 import type { AppContext } from "../env.js";
 import { requireAuth, requireOrg } from "../middleware.js";
+import { assertPeriodOpen } from "../lib/period.js";
 
 const app = new Hono<AppContext>();
 
@@ -31,6 +32,7 @@ app.post("/:orgId/journals", requireAuth, requireOrg("pencatat"), async (c) => {
   );
 
   const journal = await c.var.db.transaction(async (tx) => {
+    await assertPeriodOpen(tx, orgId, draft.date);
     const [j] = await tx
       .insert(journals)
       .values({

@@ -30,9 +30,13 @@ Dikerjakan bertahap; tiap fase idealnya satu PR.
 - Laporan persediaan (valuasi) + kartu stok.
 - Diterapkan & diverifikasi di Supabase (lihat docs/SUPABASE.md).
 
-## ⏭️ Fase 4 — Pajak & tutup buku
-- PPN masukan/keluaran (tarif via `tax_rates`), field & ekspor e-Faktur/Coretax.
-- Tutup/kunci periode; Arus Kas; ekspor PDF/CSV/Excel.
+## ✅ Fase 4 — Pajak & tutup buku
+- **Tutup/kunci periode** (`accounting_periods` + guard `assertPeriodOpen` di semua jalur posting).
+- **Laporan PPN** (keluaran − masukan = terutang) + field e-Faktur (`tax_code`, `counterparty_npwp`)
+  & **ekspor e-Faktur CSV**.
+- **Laporan Arus Kas** (metode langsung; operasional/investasi/pendanaan).
+- **Ekspor CSV** semua laporan + **tampilan cetak** (print-to-PDF). Halaman kelola Periode.
+- Diverifikasi di Supabase (PPN & arus kas).
 
 ## ⏭️ Fase 5 — Lanjutan
 - Multi-currency, faktur berulang & pengingat jatuh tempo, rekonsiliasi bank,

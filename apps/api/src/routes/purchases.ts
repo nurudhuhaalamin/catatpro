@@ -3,6 +3,7 @@ import { and, eq, isNull, inArray, desc } from "drizzle-orm";
 import {
   purchaseBills,
   purchaseBillLines,
+  contacts,
   items,
   buildPurchaseBillJournalFromLines,
   purchaseBillCreateSchema,
@@ -14,6 +15,7 @@ import { loadResolver, resolveTax } from "../lib/accounting.js";
 import { nextDocumentNumber } from "../lib/sequences.js";
 import { insertDraftJournal } from "../lib/journal.js";
 import { defaultWarehouseId, recordStockIn } from "../lib/stock.js";
+import { assertPeriodOpen } from "../lib/period.js";
 
 const app = new Hono<AppContext>();
 
@@ -39,10 +41,12 @@ app.post("/:orgId/purchase-bills", requireAuth, requireOrg("pencatat"), async (c
 
   try {
     const bill = await c.var.db.transaction(async (tx) => {
+      await assertPeriodOpen(tx, orgId, d.date);
       const resolve = await loadResolver(tx, orgId);
       const { taxRateId, taxCents } = await resolveTax(tx, orgId, d.taxRateId, subtotalCents, d.date);
       const totalCents = subtotalCents + taxCents;
       const number = await nextDocumentNumber(tx, orgId, "purchase_bill", d.date);
+      const [contact] = await tx.select({ npwp: contacts.npwp }).from(contacts).where(eq(contacts.id, d.contactId));
 
       // Muat item yang dirujuk baris (untuk akun persediaan & pergerakan stok).
       const itemIds = [...new Set(lines.map((l) => l.itemId).filter((x): x is string => !!x))];
@@ -72,6 +76,8 @@ app.post("/:orgId/purchase-bills", requireAuth, requireOrg("pencatat"), async (c
           totalCents,
           paidCents: 0,
           taxRateId,
+          taxCode: d.taxCode ?? null,
+          counterpartyNpwp: d.counterpartyNpwp ?? contact?.npwp ?? null,
           memo: d.memo ?? null,
           createdBy: c.var.user.id,
           clientId: d.clientId ?? null,

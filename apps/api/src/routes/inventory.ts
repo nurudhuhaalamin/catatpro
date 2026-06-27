@@ -5,6 +5,7 @@ import type { AppContext } from "../env.js";
 import { requireAuth, requireOrg } from "../middleware.js";
 import { defaultWarehouseId, recordStockIn, recordStockOut } from "../lib/stock.js";
 import { insertDraftJournal } from "../lib/journal.js";
+import { assertPeriodOpen } from "../lib/period.js";
 
 const app = new Hono<AppContext>();
 
@@ -16,6 +17,7 @@ app.post("/:orgId/inventory/adjustments", requireAuth, requireOrg("pencatat"), a
   const d = parsed.data;
   try {
     const result = await c.var.db.transaction(async (tx) => {
+      await assertPeriodOpen(tx, orgId, d.date);
       const [item] = await tx.select().from(items).where(and(eq(items.orgId, orgId), eq(items.id, d.itemId)));
       if (!item) throw new Error("Item tidak ditemukan");
       if (item.type !== "stock") throw new Error("Hanya item stok yang punya persediaan");

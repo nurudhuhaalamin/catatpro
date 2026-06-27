@@ -286,6 +286,9 @@ export const salesInvoices = pgTable(
     totalCents: bigint("total_cents", { mode: "number" }).notNull().default(0),
     paidCents: bigint("paid_cents", { mode: "number" }).notNull().default(0),
     taxRateId: uuid("tax_rate_id").references(() => taxRates.id),
+    // e-Faktur/Coretax: kode transaksi (mis. '01','04') & NPWP/NIK lawan (snapshot).
+    taxCode: text("tax_code"),
+    counterpartyNpwp: text("counterparty_npwp"),
     journalId: uuid("journal_id").references(() => journals.id),
     memo: text("memo"),
     createdBy: uuid("created_by"),
@@ -344,6 +347,8 @@ export const purchaseBills = pgTable(
     totalCents: bigint("total_cents", { mode: "number" }).notNull().default(0),
     paidCents: bigint("paid_cents", { mode: "number" }).notNull().default(0),
     taxRateId: uuid("tax_rate_id").references(() => taxRates.id),
+    taxCode: text("tax_code"),
+    counterpartyNpwp: text("counterparty_npwp"),
     journalId: uuid("journal_id").references(() => journals.id),
     memo: text("memo"),
     createdBy: uuid("created_by"),

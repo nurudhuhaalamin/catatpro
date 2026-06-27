@@ -3,6 +3,7 @@ import { and, eq, isNull, inArray, desc } from "drizzle-orm";
 import {
   salesInvoices,
   salesInvoiceLines,
+  contacts,
   items,
   buildSalesInvoiceJournalFromLines,
   salesInvoiceCreateSchema,
@@ -15,6 +16,7 @@ import { loadResolver, resolveTax } from "../lib/accounting.js";
 import { nextDocumentNumber } from "../lib/sequences.js";
 import { insertDraftJournal } from "../lib/journal.js";
 import { defaultWarehouseId, recordStockOut } from "../lib/stock.js";
+import { assertPeriodOpen } from "../lib/period.js";
 
 const app = new Hono<AppContext>();
 
@@ -40,10 +42,12 @@ app.post("/:orgId/sales-invoices", requireAuth, requireOrg("pencatat"), async (c
 
   try {
     const invoice = await c.var.db.transaction(async (tx) => {
+      await assertPeriodOpen(tx, orgId, d.date);
       const resolve = await loadResolver(tx, orgId);
       const { taxRateId, taxCents } = await resolveTax(tx, orgId, d.taxRateId, subtotalCents, d.date);
       const totalCents = subtotalCents + taxCents;
       const number = await nextDocumentNumber(tx, orgId, "sales_invoice", d.date);
+      const [contact] = await tx.select({ npwp: contacts.npwp }).from(contacts).where(eq(contacts.id, d.contactId));
 
       const [inv] = await tx
         .insert(salesInvoices)
@@ -59,6 +63,8 @@ app.post("/:orgId/sales-invoices", requireAuth, requireOrg("pencatat"), async (c
           totalCents,
           paidCents: 0,
           taxRateId,
+          taxCode: d.taxCode ?? null,
+          counterpartyNpwp: d.counterpartyNpwp ?? contact?.npwp ?? null,
           memo: d.memo ?? null,
           createdBy: c.var.user.id,
           clientId: d.clientId ?? null,

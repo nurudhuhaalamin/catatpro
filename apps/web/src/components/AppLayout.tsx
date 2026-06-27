@@ -10,6 +10,7 @@ const nav = [
   ["/purchases", "Pembelian"],
   ["/payments", "Pembayaran"],
   ["/reports", "Laporan"],
+  ["/periods", "Periode"],
 ];
 
 export function AppLayout() {

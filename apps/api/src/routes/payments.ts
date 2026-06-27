@@ -13,6 +13,7 @@ import { requireAuth, requireOrg } from "../middleware.js";
 import { loadResolver } from "../lib/accounting.js";
 import { nextDocumentNumber } from "../lib/sequences.js";
 import { insertDraftJournal } from "../lib/journal.js";
+import { assertPeriodOpen } from "../lib/period.js";
 
 const app = new Hono<AppContext>();
 
@@ -37,6 +38,7 @@ app.post("/:orgId/payments", requireAuth, requireOrg("pencatat"), async (c) => {
 
   try {
     const payment = await c.var.db.transaction(async (tx) => {
+      await assertPeriodOpen(tx, orgId, d.date);
       const resolve = await loadResolver(tx, orgId);
       const number = await nextDocumentNumber(tx, orgId, "payment", d.date);
 
