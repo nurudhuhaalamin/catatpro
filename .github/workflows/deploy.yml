@@ -16,11 +16,14 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Build web (PWA)
-        env:
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
         run: pnpm --filter @catatpro/web build
-      - name: Deploy Worker (API + SPA)
+      - name: Apply D1 migrations (control plane)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: d1 migrations apply catatpro-control --remote
+      - name: Deploy Worker (API + SPA + Durable Object)
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

@@ -10,13 +10,16 @@ Penerus dari [`catat`](https://github.com/nurudhuhaalamin/catat): mengangkat pol
 
 ## Tumpukan teknologi
 
+Sepenuhnya **GitHub + Cloudflare** — tanpa dependensi database/auth eksternal.
+
 | Lapisan | Teknologi |
 |---|---|
 | Frontend | React + Vite + TypeScript + Tailwind, **PWA** (online-first), TanStack Query |
-| Backend/API | **Hono** di Node.js |
-| Database | **Supabase Postgres** + **Drizzle ORM** |
-| Auth | **Supabase Auth** (JWT) |
-| Multi-tenant | `org_id` di semua tabel + **RLS Postgres** + cek membership di API |
+| Backend/API | **Hono** di **Cloudflare Workers** |
+| Database (control plane) | **Cloudflare D1** (users, organizations, memberships) + **Drizzle ORM** |
+| Database (data plane) | **Durable Objects** ber-SQLite — satu instance per organisasi |
+| Auth | JWT kustom (HS256) + hashing password PBKDF2 (`crypto.subtle`) |
+| Multi-tenant | Isolasi storage penuh (1 OrgDO/organisasi) + cek membership di API |
 | Akuntansi | **Double-entry**; buku besar (`journals` + `journal_lines`) = sumber kebenaran |
 | Test | Vitest (invarian akuntansi) |
 | CI/CD | GitHub Actions |
@@ -25,10 +28,9 @@ Penerus dari [`catat`](https://github.com/nurudhuhaalamin/catat): mengangkat pol
 
 ```
 apps/web/          React PWA
-apps/api/          Hono (Node) — REST, posting service, reporting
-packages/shared/   Drizzle schema, tipe, zod, COA, money, POSTING SERVICE (double-entry)
-supabase/          migrations (skema + RLS)
-docs/              ARCHITECTURE, ACCOUNTING (acuan standar 2026), ROADMAP
+apps/api/          Hono (Cloudflare Worker) — REST, Durable Object OrgDO, reporting
+packages/shared/   Drizzle schema (D1 + OrgDO), tipe, zod, COA, money, POSTING SERVICE (double-entry)
+docs/              ARCHITECTURE, ACCOUNTING (acuan standar 2026), ROADMAP, DEPLOY
 ```
 
 ## Standar acuan (terbaru 2026)
@@ -44,23 +46,27 @@ Prasyarat: **Node 22+** dan **pnpm 10+** (`corepack enable`).
 
 ```bash
 pnpm install
-cp .env.example .env        # isi DATABASE_URL, SUPABASE_JWT_SECRET, VITE_SUPABASE_*
+cp .dev.vars.example .dev.vars   # isi AUTH_JWT_SECRET sembarang untuk dev
 
 pnpm test                   # tes invarian akuntansi (packages/shared)
 pnpm -r typecheck
 
-pnpm db:generate            # generate migrasi Drizzle ke supabase/migrations
-pnpm dev:api                # API di http://localhost:8787
-pnpm dev:web                # Web di http://localhost:5173
+pnpm db:generate:control    # generate migrasi Drizzle (D1) ke packages/shared/drizzle/control-migrations
+pnpm db:generate:org        # generate migrasi Drizzle (OrgDO) ke packages/shared/drizzle/org-migrations
+
+pnpm dev                    # Worker (API+D1+DO via wrangler dev, :8787) + Web (Vite, :5173) sekaligus
 ```
+
+Durable Objects & D1 hanya bisa berjalan lewat `wrangler dev` (Miniflare) — tidak ada lagi
+server dev Node terpisah untuk API.
 
 ## Deploy (online)
 
-Satu **Cloudflare Worker** melayani SPA + API (`/api/*`); DB tetap Supabase. Lihat
-**[docs/DEPLOY.md](docs/DEPLOY.md)**.
+Satu **Cloudflare Worker** melayani SPA + API (`/api/*`) + Durable Object + D1 — sepenuhnya di
+Cloudflare. Lihat **[docs/DEPLOY.md](docs/DEPLOY.md)**.
 
 ```bash
-pnpm cf:deploy   # build web + wrangler deploy (perlu login Cloudflare + Hyperdrive/secret)
+pnpm cf:deploy   # build web + wrangler deploy (perlu login Cloudflare + D1/secret sudah di-setup)
 ```
 Push ke `main` juga memicu deploy otomatis via `.github/workflows/deploy.yml`.
 
@@ -80,5 +86,9 @@ Push ke `main` juga memicu deploy otomatis via `.github/workflows/deploy.yml`.
   Cr Akumulasi), nilai buku. Diverifikasi di Supabase.
 - ✅ **Fase 5b (Multi-currency):** dokumen mata uang asing + kurs; buku besar tetap mata uang dasar;
   **laba/rugi selisih kurs** otomatis saat pelunasan; tabel kurs. Diverifikasi di Supabase.
+- ✅ **Migrasi Cloudflare-only:** database & auth dipindah dari Supabase ke **D1 (control plane)
+  + Durable Objects ber-SQLite (satu per organisasi, data plane)** + auth JWT kustom — proyek kini
+  hanya bergantung pada GitHub + Cloudflare. Lihat **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
+  Data lama (bila ada) dipindahkan lewat `scripts/migrate-from-supabase.ts` (satu kali, manual).
 
 Lihat **[docs/ROADMAP.md](docs/ROADMAP.md)** untuk lanjutan Fase 5 (faktur berulang, rekonsiliasi bank).

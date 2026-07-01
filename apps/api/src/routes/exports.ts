@@ -1,8 +1,7 @@
 import { Hono } from "hono";
-import { and, eq, isNull, gte, lte, gt, asc } from "drizzle-orm";
-import { salesInvoices } from "@catatpro/shared";
 import type { AppContext } from "../env.js";
 import { requireAuth, requireOrg } from "../middleware.js";
+import { getOrgStub } from "../durable-objects/dispatch.js";
 
 const app = new Hono<AppContext>();
 
@@ -17,19 +16,7 @@ app.get("/:orgId/exports/efaktur", requireAuth, requireOrg("viewer"), async (c) 
   const orgId = c.req.param("orgId");
   const from = c.req.query("from") ?? "1900-01-01";
   const to = c.req.query("to") ?? "9999-12-31";
-  const rows = await c.var.db
-    .select()
-    .from(salesInvoices)
-    .where(
-      and(
-        eq(salesInvoices.orgId, orgId),
-        isNull(salesInvoices.deletedAt),
-        gt(salesInvoices.taxCents, 0),
-        gte(salesInvoices.date, from),
-        lte(salesInvoices.date, to),
-      ),
-    )
-    .orderBy(asc(salesInvoices.date));
+  const rows = await getOrgStub(c.env, orgId).efakturExport(orgId, from, to);
 
   const header = ["Tanggal", "NomorFaktur", "KodeTransaksi", "NPWP_NIK", "DPP", "PPN", "Total"];
   const lines = rows.map((r) =>

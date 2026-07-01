@@ -1,22 +1,22 @@
 import type { Membership } from "@catatpro/shared";
-import type { Db } from "./db.js";
 import type { AuthUser } from "./auth.js";
+import type { OrgDO } from "./durable-objects/org-do.js";
 
-// Binding/variabel lingkungan. Di Workers diisi dari wrangler.toml/secret;
-// di Node (dev) kosong → fallback ke process.env.
+// Binding/variabel lingkungan Worker (diisi dari wrangler.toml/secret).
 export interface AppBindings {
   ASSETS?: { fetch: (request: Request) => Promise<Response> };
-  HYPERDRIVE?: { connectionString: string };
-  DATABASE_URL?: string;
-  SUPABASE_JWT_SECRET?: string;
-  SUPABASE_URL?: string;
+  CATATPRO_DB: D1Database; // control plane: users, organizations, memberships
+  ORG_DO: DurableObjectNamespace<OrgDO>; // data plane: satu OrgDO per organisasi
+  AUTH_JWT_SECRET: string;
   WEB_ORIGIN?: string;
+  // Secret sementara khusus migrasi data dari Supabase — lihat routes/admin.ts.
+  // Dihapus setelah migrasi selesai diverifikasi.
+  MIGRATION_ADMIN_SECRET?: string;
 }
 
 export interface AppContext {
   Bindings: AppBindings;
   Variables: {
-    db: Db;
     user: AuthUser;
     membership: Membership;
   };

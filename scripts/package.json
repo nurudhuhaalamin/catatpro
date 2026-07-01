@@ -1,0 +1,17 @@
+{
+  "name": "catatpro-migration-scripts",
+  "private": true,
+  "type": "module",
+  "description": "Skrip migrasi data satu-kali dari Supabase ke Cloudflare (D1 + Durable Objects). BUKAN bagian dari pnpm workspace/CI — instal dependensinya sendiri di sini sebelum dipakai.",
+  "scripts": {
+    "migrate": "tsx migrate-from-supabase.ts"
+  },
+  "dependencies": {
+    "postgres": "^3.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

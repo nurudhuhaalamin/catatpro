@@ -10,15 +10,16 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:generate": "drizzle-kit generate"
+    "db:generate:control": "drizzle-kit generate --config drizzle.config.control.ts",
+    "db:generate:org": "drizzle-kit generate --config drizzle.config.org.ts"
   },
   "dependencies": {
-    "drizzle-orm": "^0.36.4",
+    "drizzle-orm": "^0.44.6",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^22.10.1",
-    "drizzle-kit": "^0.28.1",
+    "drizzle-kit": "^0.31.10",
     "vitest": "^2.1.8"
   }
 }

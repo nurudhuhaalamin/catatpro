@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../lib/supabase.js";
+import { login, signup } from "../lib/auth.js";
 
 export function LoginPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -14,14 +14,15 @@ export function LoginPage() {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const fn =
-      mode === "signin"
-        ? supabase.auth.signInWithPassword({ email, password })
-        : supabase.auth.signUp({ email, password });
-    const { error } = await fn;
-    setBusy(false);
-    if (error) setError(error.message);
-    else navigate("/");
+    try {
+      if (mode === "signin") await login(email, password);
+      else await signup(email, password);
+      navigate("/");
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (

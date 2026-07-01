@@ -1,23 +1,17 @@
 import { Hono } from "hono";
 import { and, eq, isNull } from "drizzle-orm";
-import {
-  organizations,
-  memberships,
-  accounts,
-  taxRates,
-  warehouses,
-  coaTemplate,
-  orgCreateSchema,
-  type OrgWithRole,
-} from "@catatpro/shared";
+import { organizations, memberships, orgCreateSchema, type OrgWithRole } from "@catatpro/shared";
 import type { AppContext } from "../env.js";
 import { requireAuth } from "../middleware.js";
+import { getControlDb } from "../d1.js";
+import { getOrgStub } from "../durable-objects/dispatch.js";
 
 const app = new Hono<AppContext>();
 
-// Daftar organisasi milik / yang diikuti user, beserta perannya.
+// Daftar organisasi milik / yang diikuti user, beserta perannya. (D1, lintas-org.)
 app.get("/", requireAuth, async (c) => {
-  const rows = await c.var.db
+  const db = getControlDb(c.env.CATATPRO_DB);
+  const rows = await db
     .select({ org: organizations, role: memberships.role })
     .from(memberships)
     .innerJoin(organizations, eq(memberships.orgId, organizations.id))
@@ -26,7 +20,10 @@ app.get("/", requireAuth, async (c) => {
   return c.json(result);
 });
 
-// Buat organisasi baru: seed COA sesuai standar + tarif PPN default + owner membership.
+// Buat organisasi baru: insert org+membership owner di D1, lalu seed COA/gudang/
+// tarif pajak default di OrgDO-nya. Dua langkah — BUKAN satu transaksi native
+// (dua storage berbeda); bila seedOrg gagal, RPC lain yang menyentuh OrgDO ini
+// akan seed mandiri via ensureSeeded() (lihat durable-objects/org-do.ts).
 app.post("/", requireAuth, async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const parsed = orgCreateSchema.safeParse(body);
@@ -34,44 +31,17 @@ app.post("/", requireAuth, async (c) => {
   const { name, accountingStandard, baseCurrency, npwp } = parsed.data;
   const userId = c.var.user.id;
 
-  const org = await c.var.db.transaction(async (tx) => {
-    const [created] = await tx
-      .insert(organizations)
-      .values({ name, ownerUserId: userId, accountingStandard, baseCurrency, npwp: npwp ?? null })
-      .returning();
+  const db = getControlDb(c.env.CATATPRO_DB);
+  const [created] = await db
+    .insert(organizations)
+    .values({ name, ownerUserId: userId, accountingStandard, baseCurrency, npwp: npwp ?? null })
+    .returning();
+  await db.insert(memberships).values({ orgId: created.id, userId, role: "owner" });
 
-    await tx.insert(memberships).values({ orgId: created.id, userId, role: "owner" });
+  const stub = getOrgStub(c.env, created.id);
+  await stub.seedOrg(created.id, { accountingStandard, baseCurrency, npwp: npwp ?? null });
 
-    // Gudang default untuk modul persediaan.
-    await tx.insert(warehouses).values({ orgId: created.id, name: "Gudang Utama", isDefault: true });
-
-    const coaRows = coaTemplate(accountingStandard).map((a) => ({
-      orgId: created.id,
-      code: a.code,
-      name: a.name,
-      type: a.type,
-      subtype: a.subtype,
-      normalBalance: a.normalBalance,
-    }));
-    const insertedAccounts = await tx.insert(accounts).values(coaRows).returning();
-
-    // Tarif PPN 2026: 12% dengan DPP Nilai Lain 11/12 (efektif 11%).
-    const taxOutput = insertedAccounts.find((a) => a.subtype === "tax_output");
-    await tx.insert(taxRates).values({
-      orgId: created.id,
-      name: "PPN 12% (DPP 11/12)",
-      appliesTo: "both",
-      rateBps: 1200,
-      dppFactorNum: 11,
-      dppFactorDen: 12,
-      accountId: taxOutput?.id ?? null,
-      validFrom: "2025-01-01",
-    });
-
-    return created;
-  });
-
-  return c.json(org, 201);
+  return c.json(created, 201);
 });
 
 export default app;

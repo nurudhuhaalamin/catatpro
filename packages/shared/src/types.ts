@@ -1,6 +1,5 @@
+import type { organizations, memberships, users } from "./schema.control.js";
 import type {
-  organizations,
-  memberships,
   accountingPeriods,
   accounts,
   numberSequences,
@@ -20,8 +19,9 @@ import type {
   fixedAssets,
   depreciationEntries,
   exchangeRates,
-} from "./schema.js";
+} from "./schema.org.js";
 
+export type User = typeof users.$inferSelect;
 export type Organization = typeof organizations.$inferSelect;
 export type Membership = typeof memberships.$inferSelect;
 export type AccountingPeriod = typeof accountingPeriods.$inferSelect;
