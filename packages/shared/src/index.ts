@@ -1,4 +1,5 @@
-export * from "./schema.js";
+export * from "./schema.control.js";
+export * from "./schema.org.js";
 export * from "./types.js";
 export * from "./money.js";
 export * from "./coa.js";

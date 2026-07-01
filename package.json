@@ -2,29 +2,31 @@
   "name": "catatpro",
   "version": "0.1.0",
   "private": true,
-  "description": "ERP keuangan komprehensif (double-entry, online-first, multi-tenant) di atas Supabase Postgres",
+  "description": "ERP keuangan komprehensif (double-entry, online-first, multi-tenant) di atas Cloudflare Workers + Durable Objects + D1",
   "type": "module",
   "packageManager": "pnpm@10.33.0",
   "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"pnpm cf:dev\" \"pnpm dev:web\"",
     "dev:web": "pnpm --filter @catatpro/web dev",
-    "dev:api": "pnpm --filter @catatpro/api dev",
-    "build": "pnpm --filter @catatpro/web build && pnpm --filter @catatpro/api build",
+    "build": "pnpm --filter @catatpro/web build",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm --filter @catatpro/shared test",
     "lint": "pnpm -r lint",
-    "db:generate": "pnpm --filter @catatpro/shared db:generate",
+    "db:generate:control": "pnpm --filter @catatpro/shared db:generate:control",
+    "db:generate:org": "pnpm --filter @catatpro/shared db:generate:org",
     "cf:deploy": "pnpm --filter @catatpro/web build && wrangler deploy",
     "cf:dev": "wrangler dev"
   },
   "devDependencies": {
+    "concurrently": "^9.1.0",
     "typescript": "^5.6.3",
     "vitest": "^2.1.8",
-    "wrangler": "^3.95.0"
+    "wrangler": "^4.106.0"
   },
   "engines": {
     "node": ">=22"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"]
+    "onlyBuiltDependencies": ["esbuild", "workerd"]
   }
 }

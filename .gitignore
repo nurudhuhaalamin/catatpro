@@ -12,10 +12,15 @@ packages/shared/dist/
 .env
 .env.*
 !.env.example
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
 
-# supabase
-supabase/.branches/
-supabase/.temp/
+# wrangler local state (D1/Durable Object emulation)
+.wrangler/
+
+# migrasi data satu-kali dari Supabase (dump lokal, boleh berisi data sensitif)
+scripts/.migration-state/
 
 # logs
 *.log

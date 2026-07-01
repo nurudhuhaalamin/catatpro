@@ -1,6 +1,6 @@
 name = "catatpro"
 main = "apps/api/src/worker.ts"
-compatibility_date = "2024-11-01"
+compatibility_date = "2026-07-01"
 compatibility_flags = ["nodejs_compat"]
 
 # SPA + API dilayani satu Worker. Aset di-build dari apps/web (Vite → dist).
@@ -12,20 +12,24 @@ not_found_handling = "single-page-application"
 
 [vars]
 WEB_ORIGIN = "https://catatpro.workers.dev"
-# URL Supabase (publik) — dipakai verifikasi JWT asimetris (JWKS).
-SUPABASE_URL = "https://zigdheousrbhxoivksgm.supabase.co"
 
-# --- Database Supabase ---
-# Pilih SALAH SATU (lihat docs/DEPLOY.md):
-# (A) REKOMENDASI — Cloudflare Hyperdrive (pooling + sembunyikan connstr).
-#     Buat config Hyperdrive ke connection string POOLER Supabase (port 6543),
-#     lalu isi id-nya & hapus komentar blok berikut:
-# [[hyperdrive]]
-# binding = "HYPERDRIVE"
-# id = "GANTI_DENGAN_HYPERDRIVE_ID"
-#
-# (B) Alternatif cepat — set DATABASE_URL sebagai SECRET (bukan [vars]):
-#     wrangler secret put DATABASE_URL
-#
-# Selain itu, WAJIB set secret:
-#     wrangler secret put SUPABASE_JWT_SECRET
+# --- Control plane: D1 (users, organizations, memberships) ---
+[[d1_databases]]
+binding = "CATATPRO_DB"
+database_name = "catatpro-control"
+database_id = "51ca27a1-d279-4e8f-8f35-f1dfbf89da7a"
+migrations_dir = "packages/shared/drizzle/control-migrations"
+
+# --- Data plane: satu Durable Object (SQLite) per organisasi ---
+[[durable_objects.bindings]]
+name = "ORG_DO"
+class_name = "OrgDO"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["OrgDO"]
+
+# Secret wajib (sekali set, tidak lewat CI):
+#   wrangler secret put AUTH_JWT_SECRET      (mis. `openssl rand -base64 32`)
+# Secret sementara khusus migrasi data dari Supabase (hapus setelah selesai):
+#   wrangler secret put MIGRATION_ADMIN_SECRET

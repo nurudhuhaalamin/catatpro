@@ -1,14 +1,14 @@
 import { journals, journalLines, type DraftJournal } from "@catatpro/shared";
-import type { DbTx } from "../db.js";
+import type { OrgDbTx } from "../db.js";
 
 /** Tulis satu jurnal berimbang (header + baris) secara atomik; kembalikan id jurnal. */
-export async function insertDraftJournal(
-  tx: DbTx,
+export function insertDraftJournal(
+  tx: OrgDbTx,
   orgId: string,
   draft: DraftJournal,
   opts: { createdBy?: string | null; sourceId?: string | null; number?: string | null } = {},
-): Promise<string> {
-  const [j] = await tx
+): string {
+  const [j] = tx
     .insert(journals)
     .values({
       orgId,
@@ -21,19 +21,22 @@ export async function insertDraftJournal(
       createdBy: opts.createdBy ?? null,
       postedAt: new Date(),
     })
-    .returning({ id: journals.id });
+    .returning({ id: journals.id })
+    .all();
 
-  await tx.insert(journalLines).values(
-    draft.lines.map((l, idx) => ({
-      orgId,
-      journalId: j.id,
-      accountId: l.accountId,
-      debitCents: l.debitCents,
-      creditCents: l.creditCents,
-      contactId: l.contactId ?? null,
-      memo: l.memo ?? null,
-      lineNo: idx,
-    })),
-  );
+  tx.insert(journalLines)
+    .values(
+      draft.lines.map((l, idx) => ({
+        orgId,
+        journalId: j.id,
+        accountId: l.accountId,
+        debitCents: l.debitCents,
+        creditCents: l.creditCents,
+        contactId: l.contactId ?? null,
+        memo: l.memo ?? null,
+        lineNo: idx,
+      })),
+    )
+    .run();
   return j.id;
 }

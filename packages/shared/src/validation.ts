@@ -5,6 +5,14 @@ import { z } from "zod";
 export const roleSchema = z.enum(["owner", "admin", "pencatat", "viewer"]);
 export const accountingStandardSchema = z.enum(["emkm", "ep", "sak"]);
 
+/* --------------------------------- auth ---------------------------------- */
+
+export const authCredentialsSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Email tidak valid"),
+  password: z.string().min(8, "Kata sandi minimal 8 karakter").max(200),
+});
+export type AuthCredentials = z.infer<typeof authCredentialsSchema>;
+
 export const orgCreateSchema = z.object({
   name: z.string().trim().min(1, "Nama usaha wajib diisi").max(120),
   accountingStandard: accountingStandardSchema.default("emkm"),
@@ -168,6 +176,7 @@ export const exchangeRateCreateSchema = z.object({
 });
 
 export type AssetCreate = z.infer<typeof assetCreateSchema>;
+export type DepreciateInput = z.infer<typeof depreciateSchema>;
 export type ExchangeRateCreate = z.infer<typeof exchangeRateCreateSchema>;
 export type StockAdjustment = z.infer<typeof stockAdjustmentSchema>;
 export type ContactCreate = z.infer<typeof contactCreateSchema>;

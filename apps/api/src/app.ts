@@ -1,7 +1,8 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { AppContext } from "./env.js";
-import { withDb } from "./middleware.js";
+import auth from "./routes/auth.js";
+import admin from "./routes/admin.js";
 import orgs from "./routes/orgs.js";
 import journals from "./routes/journals.js";
 import contacts from "./routes/contacts.js";
@@ -16,23 +17,24 @@ import periods from "./routes/periods.js";
 import exportsRoute from "./routes/exports.js";
 import assets from "./routes/assets.js";
 
-// Hono app (basePath /api). Dipakai oleh entri Node (index.ts) & Worker (worker.ts).
+// Hono app (basePath /api). Dipakai oleh entri Worker (worker.ts).
 const app = new Hono<AppContext>().basePath("/api");
 
 app.use("*", (c, next) =>
   cors({
     origin: (origin) => {
-      const allow = [c.env?.WEB_ORIGIN ?? process.env.WEB_ORIGIN ?? "http://localhost:5173"];
+      const allow = [c.env?.WEB_ORIGIN ?? "http://localhost:5173"];
       return allow.includes(origin) ? origin : "";
     },
     credentials: true,
   })(c, next),
 );
 
-app.use("*", withDb);
-
 app.get("/health", (c) => c.json({ ok: true, ts: Date.now() }));
 
+app.route("/auth", auth);
+// MIGRASI-SAJA (secret-gated) — lihat routes/admin.ts. Hapus setelah migrasi selesai.
+app.route("/admin", admin);
 app.route("/orgs", orgs);
 app.route("/orgs", journals);
 app.route("/orgs", contacts);

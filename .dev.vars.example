@@ -1,0 +1,2 @@
+# Salin ke .dev.vars (di root repo, gitignored) untuk `wrangler dev` lokal.
+AUTH_JWT_SECRET="ganti-dengan-secret-acak-untuk-dev-lokal"

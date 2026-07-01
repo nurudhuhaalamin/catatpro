@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { supabase } from "../lib/supabase.js";
+import { logout } from "../lib/auth.js";
 import { useOrg } from "../lib/org.js";
 
 const nav = [
@@ -51,8 +51,8 @@ export function AppLayout() {
           </nav>
           <button
             className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100"
-            onClick={async () => {
-              await supabase.auth.signOut();
+            onClick={() => {
+              logout();
               navigate("/login");
             }}
           >

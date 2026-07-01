@@ -1,4 +1,10 @@
-# Setup & Verifikasi Supabase
+# Setup & Verifikasi Supabase (ARSIP)
+
+> **Arsip pasca-migrasi ke Cloudflare (D1 + Durable Objects) — lihat `docs/ARCHITECTURE.md` &
+> `docs/DEPLOY.md` untuk arsitektur/deploy saat ini.** Dokumen ini hanya relevan untuk
+> `scripts/migrate-from-supabase.ts` (migrasi data satu kali dari project Supabase lama).
+> Setelah data lama dipindahkan & diverifikasi di Cloudflare, project Supabase ini dan dokumen
+> ini boleh dihapus/dinonaktifkan.
 
 Project Supabase **`catatpro`** sudah disiapkan & diverifikasi.
 

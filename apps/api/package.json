@@ -4,23 +4,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@catatpro/shared": "workspace:*",
-    "@hono/node-server": "^1.13.7",
-    "drizzle-orm": "^0.36.4",
+    "drizzle-orm": "^0.44.6",
     "hono": "^4.6.13",
     "jose": "^5.9.6",
-    "postgres": "^3.4.5",
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@types/node": "^22.10.1",
-    "tsx": "^4.19.2",
+    "@cloudflare/workers-types": "^4.20260701.1",
     "typescript": "^5.6.3"
   }
 }

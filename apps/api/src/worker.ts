@@ -1,6 +1,8 @@
 import app from "./app.js";
 import type { AppBindings } from "./env.js";
 
+export { OrgDO } from "./durable-objects/org-do.js";
+
 // Entri Cloudflare Worker: satu Worker melayani API (/api/*) + SPA (static assets).
 export default {
   async fetch(request: Request, env: AppBindings): Promise<Response> {

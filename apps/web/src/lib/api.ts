@@ -6,7 +6,7 @@ export interface ApiOptions {
   body?: unknown;
 }
 
-/** Pemanggil API: lampirkan token Supabase + header x-org-id. */
+/** Pemanggil API: lampirkan token JWT + header x-org-id. */
 export async function apiFetch<T = unknown>(path: string, opts: ApiOptions = {}): Promise<T> {
   const token = await getAccessToken();
   const headers: Record<string, string> = { "Content-Type": "application/json" };
