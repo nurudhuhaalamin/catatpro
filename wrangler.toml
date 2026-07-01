@@ -14,11 +14,10 @@ not_found_handling = "single-page-application"
 WEB_ORIGIN = "https://catatpro.workers.dev"
 
 # --- Control plane: D1 (users, organizations, memberships) ---
-# Buat: `wrangler d1 create catatpro-control`, lalu isi database_id di bawah.
 [[d1_databases]]
 binding = "CATATPRO_DB"
 database_name = "catatpro-control"
-database_id = "GANTI_DENGAN_D1_DATABASE_ID"
+database_id = "51ca27a1-d279-4e8f-8f35-f1dfbf89da7a"
 migrations_dir = "packages/shared/drizzle/control-migrations"
 
 # --- Data plane: satu Durable Object (SQLite) per organisasi ---
